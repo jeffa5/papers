@@ -97,8 +97,7 @@ impl SubCommand {
                 let filename = if let Some(name) = name {
                     name
                 } else {
-                    let last = url.split('/').last().as_ref().unwrap().to_string();
-                    last.trim_end_matches(".pdf").to_owned()
+                    url.split('/').last().as_ref().unwrap().to_string()
                 };
                 let mut file = File::create(&filename).unwrap();
                 std::io::copy(&mut res, &mut file).unwrap();
