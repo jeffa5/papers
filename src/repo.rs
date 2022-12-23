@@ -36,7 +36,7 @@ impl Repo {
         labels: Vec<Label>,
     ) {
         let file = file.as_ref();
-        if !canonicalize(file.parent().unwrap())
+        if !canonicalize(file).unwrap().parent()
             .unwrap()
             .starts_with(&self.root)
         {
