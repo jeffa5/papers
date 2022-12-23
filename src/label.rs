@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{str::FromStr, fmt::Display};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Label {
@@ -19,5 +19,11 @@ impl FromStr for Label {
             [_] => Err("Missing value, should be of the form `key=value`"),
             _ => Err("Too many `=`, should be of the form `key=value`"),
         }
+    }
+}
+
+impl Display for Label {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "{}={}", self.key, self.value)
     }
 }

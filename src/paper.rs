@@ -29,7 +29,7 @@ fn display_string_vector(v: &[String]) -> String {
 
 fn display_label_vector(v: &[Label]) -> String {
     v.iter()
-        .map(|l| format!("{}={}", l.key, l.value))
+        .map(|l| l.to_string())
         .collect::<Vec<_>>()
         .join(", ")
 }
