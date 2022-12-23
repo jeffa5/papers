@@ -9,6 +9,8 @@ use tracing::info;
 
 use papers::label::Label;
 
+use crate::config::Config;
+
 #[derive(Debug, clap::Parser)]
 pub struct Cli {
     #[clap(long, short)]
@@ -80,7 +82,7 @@ pub enum SubCommand {
 }
 
 impl SubCommand {
-    pub fn execute(self) {
+    pub fn execute(self, _config: &Config) {
         match self {
             SubCommand::Init {} => {
                 let cwd = current_dir().unwrap();
