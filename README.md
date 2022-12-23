@@ -12,8 +12,8 @@ papers init
 ## Fetching
 
 ```sh
-papers fetch --tag '<tag>' <url>...
-# downloads pdfs at given urls to the current repo directory and adds the tag with them to the db
+papers fetch --tag '<tag>' <url>
+# downloads pdf at the given url to the current repo directory and adds the tags with them to the db
 ```
 
 ## Add

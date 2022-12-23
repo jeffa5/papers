@@ -34,16 +34,23 @@ impl Repo {
         self.db.insert_tags(tags);
     }
 
-    pub fn list(&mut self) -> Vec<Paper> {
+    pub fn list(&mut self, match_tags: Vec<String>) -> Vec<Paper> {
         let db_papers = self.db.list_papers();
         let mut papers = Vec::new();
         for paper in db_papers {
-            let tags = self
+            let tags:Vec<String> = self
                 .db
                 .get_tags(paper.id)
                 .into_iter()
                 .map(|t| t.tag)
                 .collect();
+
+            // TODO: push this into the DB layer
+            // filter papers down
+            if !match_tags.iter().all(|t| tags.contains(t)) {
+                continue
+            }
+            
             papers.push(Paper {
                 id: paper.id,
                 url: paper.url,

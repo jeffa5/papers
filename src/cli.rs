@@ -32,7 +32,10 @@ pub enum SubCommand {
         #[clap(name = "tag", long, short)]
         tags: Vec<String>,
     },
-    List {},
+    List {
+        #[clap(name = "tag", long, short)]
+        tags: Vec<String>,
+    },
     Search {},
 }
 
@@ -66,10 +69,10 @@ impl SubCommand {
                 repo.add(&file, tags);
                 info!("Added {:?}", file);
             }
-            SubCommand::List {} => {
+            SubCommand::List {tags} => {
                 let cwd = current_dir().unwrap();
                 let mut repo = Repo::load(&cwd);
-                let papers = repo.list();
+                let papers = repo.list(tags);
                 for paper in papers {
                     println!("{:?}", paper);
                 }
