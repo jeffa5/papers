@@ -1,5 +1,9 @@
 use std::{env::current_dir, fs::File, path::PathBuf};
 
+use cli_table::{
+    format::{Border, Separator},
+    print_stdout, WithTitle,
+};
 use papers::repo::Repo;
 use tracing::info;
 
@@ -124,9 +128,12 @@ impl SubCommand {
                 let cwd = current_dir().unwrap();
                 let mut repo = Repo::load(&cwd);
                 let papers = repo.list(title, tags, labels);
-                for paper in papers {
-                    println!("{:?}", paper);
-                }
+
+                let table = papers
+                    .with_title()
+                    .border(Border::builder().build())
+                    .separator(Separator::builder().build());
+                print_stdout(table).unwrap();
             }
             SubCommand::Search {} => todo!(),
         }

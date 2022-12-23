@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.68"
 clap = { version = "4.0.32", features = ["derive"] }
+cli-table = "0.4.7"
 diesel = { version = "2.0.2", features = ["sqlite", "returning_clauses_for_sqlite_3_35"] }
 diesel_migrations = { version = "2.0.0", features = ["sqlite"] }
 reqwest = { version = "0.11.13", features = ["blocking"] }
