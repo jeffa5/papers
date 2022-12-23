@@ -14,34 +14,47 @@ pub struct Cli {
 
 #[derive(Debug, clap::Subcommand)]
 pub enum SubCommand {
+    /// Initialise a new paper repository.
     Init {},
+    /// Fetch a paper pdf from a url and add it to the repo.
     Fetch {
+        /// Url to fetch the pdf from.
         #[clap()]
         url: String,
 
+        /// Name of the file to save it to. Defaults to the basename of the url.
         #[clap()]
         name: Option<String>,
 
+        /// Title of the file.
         #[clap(long)]
         title: Option<String>,
 
+        /// Tags to associate with this file.
         #[clap(name = "tag", long, short)]
         tags: Vec<String>,
     },
+    /// Add a pdf from a local file to the repo.
     Add {
+        /// File to add.
         #[clap()]
         file: PathBuf,
 
+        /// Title of the file.
         #[clap(long)]
         title: Option<String>,
 
+        /// Tags to associate with this file.
         #[clap(name = "tag", long, short)]
         tags: Vec<String>,
     },
+    /// List the papers stored with this repo.
     List {
+        /// Filter down to papers whose titles match this (case-insensitive).
         #[clap(long)]
         title: Option<String>,
 
+        /// Filter down to papers that have all of the given tags.
         #[clap(name = "tag", long, short)]
         tags: Vec<String>,
     },
