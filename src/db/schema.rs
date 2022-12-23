@@ -18,7 +18,4 @@ diesel::table! {
 
 diesel::joinable!(tags -> papers (paper_id));
 
-diesel::allow_tables_to_appear_in_same_query!(
-    papers,
-    tags,
-);
+diesel::allow_tables_to_appear_in_same_query!(papers, tags,);

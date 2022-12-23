@@ -18,7 +18,7 @@ impl Repo {
         Self { db }
     }
 
-    pub fn add<P:AsRef<Path>>(&mut self, file: &P, tags: Vec<String>) {
+    pub fn add<P: AsRef<Path>>(&mut self, file: &P, tags: Vec<String>) {
         let paper = db::NewPaper {
             url: None,
             filename: file.as_ref().to_string_lossy().into_owned(),
@@ -38,7 +38,7 @@ impl Repo {
         let db_papers = self.db.list_papers();
         let mut papers = Vec::new();
         for paper in db_papers {
-            let tags:Vec<String> = self
+            let tags: Vec<String> = self
                 .db
                 .get_tags(paper.id)
                 .into_iter()
@@ -48,9 +48,9 @@ impl Repo {
             // TODO: push this into the DB layer
             // filter papers down
             if !match_tags.iter().all(|t| tags.contains(t)) {
-                continue
+                continue;
             }
-            
+
             papers.push(Paper {
                 id: paper.id,
                 url: paper.url,

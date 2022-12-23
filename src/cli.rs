@@ -69,7 +69,7 @@ impl SubCommand {
                 repo.add(&file, tags);
                 info!("Added {:?}", file);
             }
-            SubCommand::List {tags} => {
+            SubCommand::List { tags } => {
                 let cwd = current_dir().unwrap();
                 let mut repo = Repo::load(&cwd);
                 let papers = repo.list(tags);

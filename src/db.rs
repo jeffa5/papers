@@ -55,7 +55,7 @@ impl Db {
 
     pub fn insert_paper(&mut self, paper: NewPaper) -> Paper {
         use schema::papers;
-        
+
         diesel::insert_into(papers::table)
             .values(paper)
             .get_result(&mut self.connection)
