@@ -76,7 +76,6 @@ pub enum SubCommand {
         #[clap(name = "label", long, short)]
         labels: Vec<Label>,
     },
-    Search {},
 }
 
 impl SubCommand {
@@ -135,7 +134,6 @@ impl SubCommand {
                     .separator(Separator::builder().build());
                 print_stdout(table).unwrap();
             }
-            SubCommand::Search {} => todo!(),
         }
     }
 }

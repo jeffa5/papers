@@ -33,10 +33,3 @@ papers list
 papers list --tags 'new'
 # list all that have the tag 'new'
 ```
-
-## Searching
-
-```sh
-papers search 'kv'
-# search db for string
-```
