@@ -1,4 +1,4 @@
-use std::{env::current_dir, path::PathBuf};
+use std::{env::current_dir, fs::File, path::PathBuf};
 
 use papers::repo::Repo;
 use tracing::info;
@@ -15,7 +15,16 @@ pub struct Cli {
 #[derive(Debug, clap::Subcommand)]
 pub enum SubCommand {
     Init {},
-    Fetch {},
+    Fetch {
+        #[clap()]
+        url: String,
+
+        #[clap()]
+        name: Option<String>,
+
+        #[clap(name = "tag", long, short)]
+        tags: Vec<String>,
+    },
     Add {
         #[clap()]
         file: PathBuf,
@@ -35,8 +44,21 @@ impl SubCommand {
                 Repo::init(&cwd);
                 info!("Initialised the current directory")
             }
-            SubCommand::Fetch {} => {
-                todo!()
+            SubCommand::Fetch { url, name, tags } => {
+                let mut res = reqwest::blocking::get(&url).expect("Failed to get url");
+                let filename = if let Some(name) = name {
+                    name
+                } else {
+                    let last = url.split('/').last().as_ref().unwrap().to_string();
+                    last.trim_end_matches(".pdf").to_owned()
+                };
+                let mut file = File::create(&filename).unwrap();
+                std::io::copy(&mut res, &mut file).unwrap();
+
+                let cwd = current_dir().unwrap();
+                let mut repo = Repo::load(&cwd);
+                repo.add(&filename, tags);
+                info!("Added {:?}", filename);
             }
             SubCommand::Add { file, tags } => {
                 let cwd = current_dir().unwrap();

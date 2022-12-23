@@ -55,11 +55,11 @@ impl Db {
 
     pub fn insert_paper(&mut self, paper: NewPaper) -> Paper {
         use schema::papers;
-        let paper = diesel::insert_into(papers::table)
+        
+        diesel::insert_into(papers::table)
             .values(paper)
             .get_result(&mut self.connection)
-            .expect("Failed to add paper");
-        paper
+            .expect("Failed to add paper")
     }
 
     pub fn insert_tags(&mut self, tags: Vec<NewTag>) {
@@ -83,6 +83,6 @@ impl Db {
         use schema::tags::dsl::*;
         tags.filter(paper_id.eq(pid))
             .load::<Tag>(&mut self.connection)
-            .expect(&format!("Failed to get tags for paper id {}", pid))
+            .unwrap_or_else(|_| panic!("Failed to get tags for paper id {}", pid))
     }
 }

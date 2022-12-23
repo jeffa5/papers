@@ -18,10 +18,10 @@ impl Repo {
         Self { db }
     }
 
-    pub fn add(&mut self, file: &Path, tags: Vec<String>) {
+    pub fn add<P:AsRef<Path>>(&mut self, file: &P, tags: Vec<String>) {
         let paper = db::NewPaper {
             url: None,
-            filename: file.to_string_lossy().into_owned(),
+            filename: file.as_ref().to_string_lossy().into_owned(),
         };
         let paper = self.db.insert_paper(paper);
         let tags = tags

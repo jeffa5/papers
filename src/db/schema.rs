@@ -1,9 +1,10 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
-    papers (filename) {
-        filename -> Text,
+    papers (id) {
+        id -> Integer,
         url -> Nullable<Text>,
+        filename -> Text,
     }
 }
 
@@ -15,4 +16,9 @@ diesel::table! {
     }
 }
 
-diesel::allow_tables_to_appear_in_same_query!(papers, tags,);
+diesel::joinable!(tags -> papers (paper_id));
+
+diesel::allow_tables_to_appear_in_same_query!(
+    papers,
+    tags,
+);
