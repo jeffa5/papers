@@ -19,13 +19,16 @@ pub enum SubCommand {
     Add {
         #[clap()]
         file: PathBuf,
+
+        #[clap(name = "tag", long, short)]
+        tags: Vec<String>,
     },
     List {},
     Search {},
 }
 
 impl SubCommand {
-    pub fn execute(&self) {
+    pub fn execute(self) {
         match self {
             SubCommand::Init {} => {
                 let cwd = current_dir().unwrap();
@@ -35,10 +38,10 @@ impl SubCommand {
             SubCommand::Fetch {} => {
                 todo!()
             }
-            SubCommand::Add { file } => {
+            SubCommand::Add { file, tags } => {
                 let cwd = current_dir().unwrap();
                 let mut repo = Repo::load(&cwd);
-                repo.add(file);
+                repo.add(&file, tags);
                 info!("Added {:?}", file);
             }
             SubCommand::List {} => {

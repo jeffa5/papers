@@ -1,4 +1,3 @@
 mod db;
-mod models;
+pub mod paper;
 pub mod repo;
-mod schema;

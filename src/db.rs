@@ -5,7 +5,10 @@ use diesel::{Connection, SqliteConnection};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use tracing::{debug, warn};
 
-use crate::models::{NewPaper, Paper};
+mod models;
+mod schema;
+
+pub use models::*;
 
 const DB_FILE_NAME: &str = "test.db";
 
@@ -50,18 +53,36 @@ impl Db {
         self.connection.run_pending_migrations(MIGRATIONS).unwrap();
     }
 
-    pub fn insert_paper(&mut self, paper: NewPaper) {
-        use crate::schema::papers;
-        diesel::insert_into(papers::table)
+    pub fn insert_paper(&mut self, paper: NewPaper) -> Paper {
+        use schema::papers;
+        let paper = diesel::insert_into(papers::table)
             .values(paper)
-            .execute(&mut self.connection)
+            .get_result(&mut self.connection)
             .expect("Failed to add paper");
+        paper
     }
 
-    pub fn list(&mut self) -> Vec<Paper> {
-        use crate::schema::papers::dsl::*;
+    pub fn insert_tags(&mut self, tags: Vec<NewTag>) {
+        use schema::tags;
+        for tag in tags {
+            diesel::insert_into(tags::table)
+                .values(tag)
+                .execute(&mut self.connection)
+                .expect("Failed to add paper");
+        }
+    }
+
+    pub fn list_papers(&mut self) -> Vec<Paper> {
+        use schema::papers::dsl::*;
         papers
             .load::<Paper>(&mut self.connection)
             .expect("Failed to load posts")
+    }
+
+    pub fn get_tags(&mut self, pid: i32) -> Vec<Tag> {
+        use schema::tags::dsl::*;
+        tags.filter(paper_id.eq(pid))
+            .load::<Tag>(&mut self.connection)
+            .expect(&format!("Failed to get tags for paper id {}", pid))
     }
 }
