@@ -14,7 +14,7 @@
   };
   deps = craneLib.buildDepsOnly {
     inherit src;
-    buildInputs = [sqlite];
+    buildInputs = [sqlite pkg-config openssl];
   };
 in
   craneLib.buildPackage {
