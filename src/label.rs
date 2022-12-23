@@ -8,9 +8,17 @@ pub struct Label {
 
 impl Label {
     pub fn new(key: &str, value: &str) -> Self {
+        let key = key.trim();
+        if key.contains(char::is_whitespace) {
+            panic!("Label key contains whitespace");
+        }
+        let value = value.trim();
+        if value.contains(char::is_whitespace) {
+            panic!("Label value contains whitespace");
+        }
         Label {
-            key: key.trim().to_owned(),
-            value: value.trim().to_owned(),
+            key: key.to_owned(),
+            value: value.to_owned(),
         }
     }
 
