@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 
 use crate::db;
 use crate::label::Label;
+use crate::tag::Tag;
 use crate::{db::Db, paper::Paper};
 
 pub struct Repo {
@@ -32,11 +33,13 @@ impl Repo {
         file: &P,
         url: Option<String>,
         title: Option<String>,
-        tags: Vec<String>,
+        tags: Vec<Tag>,
         labels: Vec<Label>,
     ) {
         let file = file.as_ref();
-        if !canonicalize(file).unwrap().parent()
+        if !canonicalize(file)
+            .unwrap()
+            .parent()
             .unwrap()
             .starts_with(&self.root)
         {
@@ -55,7 +58,7 @@ impl Repo {
             .into_iter()
             .map(|t| db::NewTag {
                 paper_id: paper.id,
-                tag: t,
+                tag: t.to_string(),
             })
             .collect();
         self.db.insert_tags(tags);
@@ -74,21 +77,21 @@ impl Repo {
     pub fn list(
         &mut self,
         match_title: Option<String>,
-        match_tags: Vec<String>,
+        match_tags: Vec<Tag>,
         match_labels: Vec<Label>,
     ) -> Vec<Paper> {
         let db_papers = self.db.list_papers();
         let mut papers = Vec::new();
         let match_title = match_title.map(|t| t.to_lowercase());
         for paper in db_papers {
-            let tags: Vec<String> = self
+            let tags: Vec<_> = self
                 .db
                 .get_tags(paper.id)
                 .into_iter()
-                .map(|t| t.tag)
+                .map(|t| Tag::new(&t.tag))
                 .collect();
 
-            let labels: Vec<Label> = self
+            let labels: Vec<_> = self
                 .db
                 .get_labels(paper.id)
                 .into_iter()

@@ -4,7 +4,7 @@ use cli_table::{
     format::{Border, Separator},
     print_stdout, WithTitle,
 };
-use papers::repo::Repo;
+use papers::{repo::Repo, tag::Tag};
 use tracing::info;
 
 use papers::label::Label;
@@ -22,6 +22,7 @@ pub struct Cli {
 pub enum SubCommand {
     /// Initialise a new paper repository.
     Init {},
+    // TODO: interactive fetch and add
     /// Fetch a paper pdf from a url and add it to the repo.
     Fetch {
         /// Url to fetch the pdf from.
@@ -38,7 +39,7 @@ pub enum SubCommand {
 
         /// Tags to associate with this file.
         #[clap(name = "tag", long, short)]
-        tags: Vec<String>,
+        tags: Vec<Tag>,
 
         /// Labels to associate with this file. Labels take the form `key=value`.
         #[clap(name = "label", long, short)]
@@ -56,7 +57,7 @@ pub enum SubCommand {
 
         /// Tags to associate with this file.
         #[clap(name = "tag", long, short)]
-        tags: Vec<String>,
+        tags: Vec<Tag>,
 
         /// Labels to associate with this file. Labels take the form `key=value`.
         #[clap(name = "label", long, short)]
@@ -70,7 +71,7 @@ pub enum SubCommand {
 
         /// Filter down to papers that have all of the given tags.
         #[clap(name = "tag", long, short)]
-        tags: Vec<String>,
+        tags: Vec<Tag>,
 
         /// Filter down to papers that have all of the given labels. Labels take the form `key=value`.
         #[clap(name = "label", long, short)]

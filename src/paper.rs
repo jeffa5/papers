@@ -1,4 +1,4 @@
-use crate::label::Label;
+use crate::{label::Label, tag::Tag};
 use cli_table::Table;
 
 #[derive(Debug, Table)]
@@ -9,8 +9,8 @@ pub struct Paper {
     pub filename: String,
     #[table(display_fn = "display_optional_string")]
     pub title: Option<String>,
-    #[table(display_fn = "display_string_vector")]
-    pub tags: Vec<String>,
+    #[table(display_fn = "display_tag_vector")]
+    pub tags: Vec<Tag>,
     #[table(display_fn = "display_label_vector")]
     pub labels: Vec<Label>,
 }
@@ -23,8 +23,11 @@ fn display_optional_string(s: &Option<String>) -> String {
     }
 }
 
-fn display_string_vector(v: &[String]) -> String {
-    v.join(" ")
+fn display_tag_vector(v: &[Tag]) -> String {
+    v.iter()
+        .map(|l| l.to_string())
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 fn display_label_vector(v: &[Label]) -> String {
