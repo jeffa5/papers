@@ -43,6 +43,8 @@ impl Repo {
             panic!("file doesn't live in the root")
         }
 
+        let file = file.file_name().unwrap();
+
         let paper = db::NewPaper {
             url,
             filename: file.to_string_lossy().into_owned(),
