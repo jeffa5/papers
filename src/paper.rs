@@ -24,12 +24,12 @@ fn display_optional_string(s: &Option<String>) -> String {
 }
 
 fn display_string_vector(v: &[String]) -> String {
-    v.join(", ")
+    v.join(" ")
 }
 
 fn display_label_vector(v: &[Label]) -> String {
     v.iter()
         .map(|l| l.to_string())
         .collect::<Vec<_>>()
-        .join(", ")
+        .join(" ")
 }

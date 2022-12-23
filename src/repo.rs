@@ -1,4 +1,5 @@
-use std::path::Path;
+use std::fs::canonicalize;
+use std::path::{Path, PathBuf};
 
 use crate::db;
 use crate::label::Label;
@@ -6,17 +7,24 @@ use crate::{db::Db, paper::Paper};
 
 pub struct Repo {
     db: Db,
+    root: PathBuf,
 }
 
 impl Repo {
-    pub fn init(dir: &Path) -> Self {
-        let db = Db::init(dir);
-        Self { db }
+    pub fn init(root: &Path) -> Self {
+        let db = Db::init(root);
+        Self {
+            db,
+            root: canonicalize(root).unwrap(),
+        }
     }
 
-    pub fn load(dir: &Path) -> Self {
-        let db = Db::load(dir);
-        Self { db }
+    pub fn load(root: &Path) -> Self {
+        let db = Db::load(root);
+        Self {
+            db,
+            root: canonicalize(root).unwrap(),
+        }
     }
 
     pub fn add<P: AsRef<Path>>(
@@ -27,9 +35,17 @@ impl Repo {
         tags: Vec<String>,
         labels: Vec<Label>,
     ) {
+        let file = file.as_ref();
+        if !canonicalize(file.parent().unwrap())
+            .unwrap()
+            .starts_with(&self.root)
+        {
+            panic!("file doesn't live in the root")
+        }
+
         let paper = db::NewPaper {
             url,
-            filename: file.as_ref().to_string_lossy().into_owned(),
+            filename: file.to_string_lossy().into_owned(),
             title,
         };
         let paper = self.db.insert_paper(paper);
@@ -46,8 +62,8 @@ impl Repo {
             .into_iter()
             .map(|l| db::NewLabel {
                 paper_id: paper.id,
-                label_key: l.key,
-                label_value: l.value,
+                label_key: l.key().to_owned(),
+                label_value: l.value().to_owned(),
             })
             .collect();
         self.db.insert_labels(labels);
@@ -74,10 +90,7 @@ impl Repo {
                 .db
                 .get_labels(paper.id)
                 .into_iter()
-                .map(|l| Label {
-                    key: l.label_key,
-                    value: l.label_value,
-                })
+                .map(|l| Label::new(&l.label_key, &l.label_value))
                 .collect();
 
             if let Some(match_title) = match_title.as_ref() {
