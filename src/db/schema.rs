@@ -10,6 +10,14 @@ diesel::table! {
 }
 
 diesel::table! {
+    notes (id) {
+        id -> Integer,
+        paper_id -> Integer,
+        content -> Text,
+    }
+}
+
+diesel::table! {
     papers (id) {
         id -> Integer,
         url -> Nullable<Text>,
@@ -27,6 +35,7 @@ diesel::table! {
 }
 
 diesel::joinable!(labels -> papers (paper_id));
+diesel::joinable!(notes -> papers (paper_id));
 diesel::joinable!(tags -> papers (paper_id));
 
-diesel::allow_tables_to_appear_in_same_query!(labels, papers, tags,);
+diesel::allow_tables_to_appear_in_same_query!(labels, notes, papers, tags,);

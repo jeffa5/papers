@@ -13,6 +13,8 @@ pub struct Paper {
     pub tags: Vec<Tag>,
     #[table(display_fn = "display_label_vector")]
     pub labels: Vec<Label>,
+    /// Whether this paper has notes or not
+    pub notes: bool,
 }
 
 fn display_optional_string(s: &Option<String>) -> String {

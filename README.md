@@ -33,3 +33,10 @@ papers list
 papers list --tags 'new'
 # list all that have the tag 'new'
 ```
+
+## Notes
+
+```sh
+papers notes <id>
+# edit notes for the paper id from list
+```

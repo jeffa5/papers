@@ -726,6 +726,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_yaml",
+ "tempfile",
  "tracing",
  "tracing-subscriber",
 ]

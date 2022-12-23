@@ -1,4 +1,10 @@
-use std::{env::current_dir, fs::File, path::PathBuf};
+use std::{
+    env::current_dir,
+    fs::File,
+    io::{Read, Write},
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 use cli_table::{
     format::{Border, Separator},
@@ -79,6 +85,10 @@ pub enum SubCommand {
         #[clap(name = "label", long, short)]
         labels: Vec<Label>,
     },
+    Notes {
+        #[clap()]
+        paper_id: i32,
+    },
 }
 
 impl SubCommand {
@@ -136,6 +146,27 @@ impl SubCommand {
                     .separator(Separator::builder().build());
                 print_stdout(table).unwrap();
             }
+            SubCommand::Notes { paper_id } => {
+                let cwd = current_dir().unwrap();
+                let mut repo = Repo::load(&cwd);
+                let mut note = repo.get_note(paper_id);
+
+                let mut file = tempfile::NamedTempFile::new().unwrap();
+                write!(file, "{}", note.content).unwrap();
+
+                edit(file.path());
+
+                let mut content = String::new();
+                let mut file = File::open(file.path()).unwrap();
+                file.read_to_string(&mut content).unwrap();
+                note.content = content;
+                repo.update_note(note);
+            }
         }
     }
+}
+
+fn edit(filename: &Path) {
+    let editor = std::env::var("EDITOR").unwrap_or_else(|_| "vim".to_owned());
+    Command::new(editor).arg(filename).status().unwrap();
 }

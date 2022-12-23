@@ -103,4 +103,28 @@ impl Db {
             .load::<Label>(&mut self.connection)
             .unwrap_or_else(|_| panic!("Failed to get labels for paper id {}", pid))
     }
+
+    pub fn get_note(&mut self, pid: i32) -> Option<Note> {
+        use schema::notes::dsl::*;
+        notes
+            .filter(paper_id.eq(pid))
+            .first::<Note>(&mut self.connection)
+            .ok()
+    }
+
+    pub fn insert_note(&mut self, note: NewNote) {
+        use schema::notes;
+        diesel::insert_into(notes::table)
+            .values(note)
+            .execute(&mut self.connection)
+            .expect("Failed to add note");
+    }
+
+    pub fn update_note(&mut self, new_note: Note) {
+        use schema::notes::dsl::*;
+        diesel::update(notes.find(new_note.id))
+            .set(content.eq(new_note.content))
+            .execute(&mut self.connection)
+            .unwrap_or_else(|_| panic!("Failed to update note for paper id {}", new_note.paper_id));
+    }
 }

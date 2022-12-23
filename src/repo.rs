@@ -98,6 +98,8 @@ impl Repo {
                 .map(|l| Label::new(&l.label_key, &l.label_value))
                 .collect();
 
+            let notes = self.db.get_note(paper.id).is_some();
+
             if let Some(match_title) = match_title.as_ref() {
                 if let Some(title) = paper.title.as_ref() {
                     if !title.to_lowercase().contains(match_title) {
@@ -127,8 +129,25 @@ impl Repo {
                 title: paper.title,
                 tags,
                 labels,
+                notes,
             });
         }
         papers
+    }
+
+    pub fn get_note(&mut self, paper_id: i32) -> db::Note {
+        if let Some(note) = self.db.get_note(paper_id) {
+            return note;
+        }
+        let note = db::NewNote {
+            paper_id,
+            content: String::new(),
+        };
+        self.db.insert_note(note);
+        self.db.get_note(paper_id).unwrap()
+    }
+
+    pub fn update_note(&mut self, note: db::Note) {
+        self.db.update_note(note)
     }
 }
