@@ -18,10 +18,11 @@ impl Repo {
         Self { db }
     }
 
-    pub fn add<P: AsRef<Path>>(&mut self, file: &P, tags: Vec<String>) {
+    pub fn add<P: AsRef<Path>>(&mut self, file: &P, url: Option<String>, title: Option<String>, tags: Vec<String>) {
         let paper = db::NewPaper {
-            url: None,
+            url,
             filename: file.as_ref().to_string_lossy().into_owned(),
+            title,
         };
         let paper = self.db.insert_paper(paper);
         let tags = tags
@@ -55,6 +56,7 @@ impl Repo {
                 id: paper.id,
                 url: paper.url,
                 filename: paper.filename,
+                title: paper.title,
                 tags,
             });
         }

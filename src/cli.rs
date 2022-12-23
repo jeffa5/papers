@@ -22,12 +22,18 @@ pub enum SubCommand {
         #[clap()]
         name: Option<String>,
 
+        #[clap(long)]
+        title: Option<String>,
+
         #[clap(name = "tag", long, short)]
         tags: Vec<String>,
     },
     Add {
         #[clap()]
         file: PathBuf,
+
+        #[clap(long)]
+        title: Option<String>,
 
         #[clap(name = "tag", long, short)]
         tags: Vec<String>,
@@ -47,7 +53,7 @@ impl SubCommand {
                 Repo::init(&cwd);
                 info!("Initialised the current directory")
             }
-            SubCommand::Fetch { url, name, tags } => {
+            SubCommand::Fetch { url, name, title,tags } => {
                 let mut res = reqwest::blocking::get(&url).expect("Failed to get url");
                 let filename = if let Some(name) = name {
                     name
@@ -60,13 +66,13 @@ impl SubCommand {
 
                 let cwd = current_dir().unwrap();
                 let mut repo = Repo::load(&cwd);
-                repo.add(&filename, tags);
+                repo.add(&filename, Some(url), title, tags);
                 info!("Added {:?}", filename);
             }
-            SubCommand::Add { file, tags } => {
+            SubCommand::Add { file,title, tags } => {
                 let cwd = current_dir().unwrap();
                 let mut repo = Repo::load(&cwd);
-                repo.add(&file, tags);
+                repo.add(&file, None, title, tags);
                 info!("Added {:?}", file);
             }
             SubCommand::List { tags } => {
