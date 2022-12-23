@@ -2,14 +2,23 @@
   craneLib,
   pkg-config,
   openssl,
+  lib,
+  sqlite,
 }: let
-  src = craneLib.cleanCargoSource ./..;
+  migrationsFilter = path: _type: builtins.match ".*/migrations/.*$" path != null;
+  cargoFilter = craneLib.filterCargoSources;
+  srcFilter = path: type: builtins.any (f: f path type) [cargoFilter migrationsFilter];
+  src = lib.cleanSourceWith {
+    src = ./..;
+    filter = srcFilter;
+  };
   deps = craneLib.buildDepsOnly {
     inherit src;
-    buildInputs = [pkg-config openssl];
+    buildInputs = [sqlite];
   };
 in
   craneLib.buildPackage {
     inherit src;
     cargoArtifacts = deps;
+    buildInputs = [sqlite];
   }
