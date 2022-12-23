@@ -88,6 +88,7 @@ pub enum SubCommand {
     Notes {
         #[clap()]
         paper_id: i32,
+        // TODO: create another nested subcommand for show, edit, ..
     },
 }
 
