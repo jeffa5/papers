@@ -1,3 +1,4 @@
+use super::schema::labels;
 use super::schema::papers;
 use super::schema::tags;
 use diesel::prelude::*;
@@ -30,4 +31,20 @@ pub struct Tag {
 pub struct NewTag {
     pub paper_id: i32,
     pub tag: String,
+}
+
+#[derive(Debug, Queryable)]
+pub struct Label {
+    pub id: i32,
+    pub paper_id: i32,
+    pub label_key: String,
+    pub label_value: String,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = labels)]
+pub struct NewLabel {
+    pub paper_id: i32,
+    pub label_key: String,
+    pub label_value: String,
 }

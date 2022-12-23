@@ -68,7 +68,17 @@ impl Db {
             diesel::insert_into(tags::table)
                 .values(tag)
                 .execute(&mut self.connection)
-                .expect("Failed to add paper");
+                .expect("Failed to add tags");
+        }
+    }
+
+    pub fn insert_labels(&mut self, labels: Vec<NewLabel>) {
+        use schema::labels;
+        for label in labels {
+            diesel::insert_into(labels::table)
+                .values(label)
+                .execute(&mut self.connection)
+                .expect("Failed to add labels");
         }
     }
 
@@ -84,5 +94,13 @@ impl Db {
         tags.filter(paper_id.eq(pid))
             .load::<Tag>(&mut self.connection)
             .unwrap_or_else(|_| panic!("Failed to get tags for paper id {}", pid))
+    }
+
+    pub fn get_labels(&mut self, pid: i32) -> Vec<Label> {
+        use schema::labels::dsl::*;
+        labels
+            .filter(paper_id.eq(pid))
+            .load::<Label>(&mut self.connection)
+            .unwrap_or_else(|_| panic!("Failed to get labels for paper id {}", pid))
     }
 }

@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use crate::db;
+use crate::label::Label;
 use crate::{db::Db, paper::Paper};
 
 pub struct Repo {
@@ -24,6 +25,7 @@ impl Repo {
         url: Option<String>,
         title: Option<String>,
         tags: Vec<String>,
+        labels: Vec<Label>,
     ) {
         let paper = db::NewPaper {
             url,
@@ -39,9 +41,24 @@ impl Repo {
             })
             .collect();
         self.db.insert_tags(tags);
+
+        let labels = labels
+            .into_iter()
+            .map(|l| db::NewLabel {
+                paper_id: paper.id,
+                label_key: l.key,
+                label_value: l.value,
+            })
+            .collect();
+        self.db.insert_labels(labels);
     }
 
-    pub fn list(&mut self, match_title: Option<String>, match_tags: Vec<String>) -> Vec<Paper> {
+    pub fn list(
+        &mut self,
+        match_title: Option<String>,
+        match_tags: Vec<String>,
+        match_labels: Vec<Label>,
+    ) -> Vec<Paper> {
         let db_papers = self.db.list_papers();
         let mut papers = Vec::new();
         let match_title = match_title.map(|t| t.to_lowercase());
@@ -51,6 +68,16 @@ impl Repo {
                 .get_tags(paper.id)
                 .into_iter()
                 .map(|t| t.tag)
+                .collect();
+
+            let labels: Vec<Label> = self
+                .db
+                .get_labels(paper.id)
+                .into_iter()
+                .map(|l| Label {
+                    key: l.label_key,
+                    value: l.label_value,
+                })
                 .collect();
 
             if let Some(match_title) = match_title.as_ref() {
@@ -69,12 +96,19 @@ impl Repo {
                 continue;
             }
 
+            // TODO: push this into the DB layer
+            // filter papers down
+            if !match_labels.iter().all(|l| labels.contains(l)) {
+                continue;
+            }
+
             papers.push(Paper {
                 id: paper.id,
                 url: paper.url,
                 filename: paper.filename,
                 title: paper.title,
                 tags,
+                labels,
             });
         }
         papers
