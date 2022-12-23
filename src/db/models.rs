@@ -7,7 +7,7 @@ pub struct Paper {
     pub id: i32,
     pub url: Option<String>,
     pub filename: String,
-    pub title : Option<String>,
+    pub title: Option<String>,
 }
 
 #[derive(Insertable)]
@@ -15,7 +15,7 @@ pub struct Paper {
 pub struct NewPaper {
     pub url: Option<String>,
     pub filename: String,
-    pub title : Option<String>,
+    pub title: Option<String>,
 }
 
 #[derive(Debug, Queryable)]

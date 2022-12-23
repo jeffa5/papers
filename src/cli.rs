@@ -39,6 +39,9 @@ pub enum SubCommand {
         tags: Vec<String>,
     },
     List {
+        #[clap(long)]
+        title: Option<String>,
+
         #[clap(name = "tag", long, short)]
         tags: Vec<String>,
     },
@@ -53,7 +56,12 @@ impl SubCommand {
                 Repo::init(&cwd);
                 info!("Initialised the current directory")
             }
-            SubCommand::Fetch { url, name, title,tags } => {
+            SubCommand::Fetch {
+                url,
+                name,
+                title,
+                tags,
+            } => {
                 let mut res = reqwest::blocking::get(&url).expect("Failed to get url");
                 let filename = if let Some(name) = name {
                     name
@@ -69,16 +77,16 @@ impl SubCommand {
                 repo.add(&filename, Some(url), title, tags);
                 info!("Added {:?}", filename);
             }
-            SubCommand::Add { file,title, tags } => {
+            SubCommand::Add { file, title, tags } => {
                 let cwd = current_dir().unwrap();
                 let mut repo = Repo::load(&cwd);
                 repo.add(&file, None, title, tags);
                 info!("Added {:?}", file);
             }
-            SubCommand::List { tags } => {
+            SubCommand::List { title, tags } => {
                 let cwd = current_dir().unwrap();
                 let mut repo = Repo::load(&cwd);
-                let papers = repo.list(tags);
+                let papers = repo.list(title, tags);
                 for paper in papers {
                     println!("{:?}", paper);
                 }

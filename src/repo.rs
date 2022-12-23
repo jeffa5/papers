@@ -18,7 +18,13 @@ impl Repo {
         Self { db }
     }
 
-    pub fn add<P: AsRef<Path>>(&mut self, file: &P, url: Option<String>, title: Option<String>, tags: Vec<String>) {
+    pub fn add<P: AsRef<Path>>(
+        &mut self,
+        file: &P,
+        url: Option<String>,
+        title: Option<String>,
+        tags: Vec<String>,
+    ) {
         let paper = db::NewPaper {
             url,
             filename: file.as_ref().to_string_lossy().into_owned(),
@@ -35,9 +41,10 @@ impl Repo {
         self.db.insert_tags(tags);
     }
 
-    pub fn list(&mut self, match_tags: Vec<String>) -> Vec<Paper> {
+    pub fn list(&mut self, match_title: Option<String>, match_tags: Vec<String>) -> Vec<Paper> {
         let db_papers = self.db.list_papers();
         let mut papers = Vec::new();
+        let match_title = match_title.map(|t| t.to_lowercase());
         for paper in db_papers {
             let tags: Vec<String> = self
                 .db
@@ -45,6 +52,16 @@ impl Repo {
                 .into_iter()
                 .map(|t| t.tag)
                 .collect();
+
+            if let Some(match_title) = match_title.as_ref() {
+                if let Some(title) = paper.title.as_ref() {
+                    if !title.to_lowercase().contains(match_title) {
+                        continue;
+                    }
+                } else {
+                    continue;
+                }
+            }
 
             // TODO: push this into the DB layer
             // filter papers down
