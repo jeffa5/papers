@@ -10,7 +10,7 @@ mod schema;
 
 pub use models::*;
 
-const DB_FILE_NAME: &str = "test.db";
+const DB_FILE_NAME: &str = "papers.db";
 
 const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 
