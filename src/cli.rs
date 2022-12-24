@@ -1,6 +1,6 @@
 use std::{
     env::current_dir,
-    fs::File,
+    fs::{remove_file, File},
     io::{Read, Write},
     path::{Path, PathBuf},
     process::Command,
@@ -11,7 +11,7 @@ use cli_table::{
     print_stdout, WithTitle,
 };
 use papers::{repo::Repo, tag::Tag};
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 
 use papers::label::Label;
 
@@ -96,6 +96,10 @@ pub enum SubCommand {
         /// Id of the paper to remove.
         #[clap()]
         paper_id: i32,
+
+        /// Also remove the paper file.
+        #[clap(long)]
+        with_file: bool,
     },
     /// Manage tags associated with a paper.
     Tags {
@@ -208,11 +212,24 @@ impl SubCommand {
                 repo.update(paper_id, file.as_ref(), url, title);
                 info!(id = paper_id, "Updated paper");
             }
-            Self::Remove { paper_id } => {
+            Self::Remove {
+                paper_id,
+                with_file,
+            } => {
                 let cwd = current_dir().unwrap();
                 let mut repo = Repo::load(&cwd);
-                repo.remove(paper_id);
-                info!(id = paper_id, "Removed paper");
+                if let Some(paper) = repo.get_paper(paper_id) {
+                    debug!(id = paper_id, file = paper.filename, "Removing paper");
+                    repo.remove(paper_id);
+                    info!(id = paper_id, file = paper.filename, "Removed paper");
+                    if with_file {
+                        debug!(file = paper.filename, "Removing file");
+                        remove_file(&paper.filename).unwrap();
+                        info!(file = paper.filename, "Removed file");
+                    }
+                } else {
+                    info!(id = paper_id, "No paper with that id to remove");
+                }
             }
             Self::Tags { subcommand } => {
                 subcommand.execute();
