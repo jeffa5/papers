@@ -231,9 +231,24 @@ impl SubCommand {
                     repo.remove(paper_id);
                     info!(id = paper_id, file = paper.filename, "Removed paper");
                     if with_file {
-                        debug!(file = paper.filename, "Removing file");
-                        remove_file(&paper.filename).unwrap();
-                        info!(file = paper.filename, "Removed file");
+                        // check that the file isn't needed by another paper
+                        let papers_with_that_file =
+                            repo.list(Some(paper.filename.clone()), None, Vec::new(), Vec::new());
+                        if papers_with_that_file.is_empty() {
+                            debug!(file = paper.filename, "Removing file");
+                            remove_file(&paper.filename).unwrap();
+                            info!(file = paper.filename, "Removed file");
+                        } else {
+                            let papers_with_that_file = papers_with_that_file
+                                .iter()
+                                .map(|p| p.id)
+                                .collect::<Vec<_>>();
+                            warn!(
+                                file = paper.filename,
+                                ?papers_with_that_file,
+                                "Can't remove the file, it is used by other papers"
+                            );
+                        }
                     }
                 } else {
                     info!(id = paper_id, "No paper with that id to remove");
