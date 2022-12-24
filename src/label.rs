@@ -50,6 +50,6 @@ impl FromStr for Label {
 
 impl Display for Label {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "{}={}", self.key, self.value)
+        write!(f, "{}={}", self.key, self.value)
     }
 }

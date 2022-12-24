@@ -33,6 +33,6 @@ impl FromStr for Tag {
 
 impl Display for Tag {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "{}", self.key)
+        write!(f, "{}", self.key)
     }
 }
