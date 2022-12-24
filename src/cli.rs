@@ -175,10 +175,7 @@ impl SubCommand {
                 std::io::copy(&mut res, &mut file).unwrap();
                 info!(url, filename, "Fetched");
 
-                let cwd = current_dir().unwrap();
-                let mut repo = Repo::load(&cwd);
-                let paper = repo.add(&filename, Some(url), title, tags, labels);
-                info!(id = paper.id, filename = paper.filename, "Added paper");
+                add(&filename, Some(url), title, tags, labels);
             }
             Self::Add {
                 file,
@@ -186,10 +183,7 @@ impl SubCommand {
                 tags,
                 labels,
             } => {
-                let cwd = current_dir().unwrap();
-                let mut repo = Repo::load(&cwd);
-                let paper = repo.add(&file, None, title, tags, labels);
-                info!(id = paper.id, filename = paper.filename, "Added paper");
+                add(file, None, title, tags, labels);
             }
             Self::Update {
                 paper_id,
@@ -397,4 +391,48 @@ impl LabelsCommands {
             }
         }
     }
+}
+
+fn add<P: AsRef<Path>>(
+    file: P,
+    url: Option<String>,
+    mut title: Option<String>,
+    tags: Vec<Tag>,
+    labels: Vec<Label>,
+) {
+    let file = file.as_ref();
+    let cwd = current_dir().unwrap();
+    let mut repo = Repo::load(&cwd);
+
+    if title.is_none() {
+        title = extract_title(file);
+    }
+
+    let paper = repo.add(&file, url, title, tags, labels);
+    info!(id = paper.id, filename = paper.filename, "Added paper");
+}
+
+fn extract_title(file: &Path) -> Option<String> {
+    if let Ok(pdf_file) = pdf::file::File::<Vec<u8>>::open(file) {
+        debug!(?file, "Loaded pdf file");
+        if let Some(info) = pdf_file.trailer.info_dict.as_ref() {
+            debug!(?file, ?info, "Found the info dict");
+            // try and extract the title
+            if let Some(found_title) = info.get("Title") {
+                debug!(?file, "Found title");
+                let found_title = found_title
+                    .as_string()
+                    .unwrap()
+                    .as_str()
+                    .unwrap()
+                    .into_owned();
+                if !found_title.is_empty() {
+                    debug!(?file, title = found_title, "Setting auto title");
+                    return Some(found_title);
+                }
+            }
+        }
+    }
+    warn!("Couldn't find a title in pdf metadata");
+    None
 }
