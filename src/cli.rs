@@ -118,8 +118,8 @@ impl SubCommand {
 
                 let cwd = current_dir().unwrap();
                 let mut repo = Repo::load(&cwd);
-                repo.add(&filename, Some(url), title, tags, labels);
-                info!("Added {:?}", filename);
+                let paper = repo.add(&filename, Some(url), title, tags, labels);
+                info!(id = paper.id, filename = paper.filename, "Added paper");
             }
             SubCommand::Add {
                 file,
@@ -129,8 +129,8 @@ impl SubCommand {
             } => {
                 let cwd = current_dir().unwrap();
                 let mut repo = Repo::load(&cwd);
-                repo.add(&file, None, title, tags, labels);
-                info!("Added {:?}", file);
+                let paper = repo.add(&file, None, title, tags, labels);
+                info!(id = paper.id, filename = paper.filename, "Added paper");
             }
             SubCommand::List {
                 title,

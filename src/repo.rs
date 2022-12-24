@@ -35,7 +35,7 @@ impl Repo {
         title: Option<String>,
         tags: Vec<Tag>,
         labels: Vec<Label>,
-    ) {
+    ) -> Paper {
         let file = file.as_ref();
         if !canonicalize(file)
             .unwrap()
@@ -54,24 +54,34 @@ impl Repo {
             title,
         };
         let paper = self.db.insert_paper(paper);
-        let tags = tags
-            .into_iter()
+        let new_tags = tags
+            .iter()
             .map(|t| db::NewTag {
                 paper_id: paper.id,
                 tag: t.to_string(),
             })
             .collect();
-        self.db.insert_tags(tags);
+        self.db.insert_tags(new_tags);
 
-        let labels = labels
-            .into_iter()
+        let new_labels = labels
+            .iter()
             .map(|l| db::NewLabel {
                 paper_id: paper.id,
                 label_key: l.key().to_owned(),
                 label_value: l.value().to_owned(),
             })
             .collect();
-        self.db.insert_labels(labels);
+        self.db.insert_labels(new_labels);
+
+        Paper {
+            id: paper.id,
+            url: paper.url,
+            filename: paper.filename,
+            title: paper.title,
+            tags,
+            labels,
+            notes: false,
+        }
     }
 
     pub fn list(
