@@ -9,23 +9,27 @@ pub struct Label {
 impl Label {
     pub fn new(key: &str, value: &str) -> Self {
         let key = key.trim();
-        if key.contains(char::is_whitespace) {
-            panic!("Label key contains whitespace");
-        }
+        assert!(
+            !key.contains(char::is_whitespace),
+            "Label key contains whitespace"
+        );
         let value = value.trim();
-        if value.contains(char::is_whitespace) {
-            panic!("Label value contains whitespace");
-        }
+        assert!(
+            !value.contains(char::is_whitespace),
+            "Label value contains whitespace"
+        );
         Self {
             key: key.to_owned(),
             value: value.to_owned(),
         }
     }
 
+    #[must_use]
     pub fn key(&self) -> &str {
         &self.key
     }
 
+    #[must_use]
     pub fn value(&self) -> &str {
         &self.value
     }

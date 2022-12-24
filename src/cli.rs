@@ -116,7 +116,7 @@ impl SubCommand {
         match self {
             Self::Init {} => {
                 let cwd = current_dir().unwrap();
-                Repo::init(&cwd);
+                let _ = Repo::init(&cwd);
                 info!("Initialised the current directory")
             }
             Self::Fetch {
@@ -201,7 +201,7 @@ impl SubCommand {
                 let mut note = repo.get_note(paper_id);
 
                 let mut file = tempfile::Builder::new()
-                    .prefix(&format!("papers-{}-", paper_id))
+                    .prefix(&format!("papers-{paper_id}-"))
                     .suffix(".md")
                     .rand_bytes(5)
                     .tempfile()

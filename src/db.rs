@@ -89,29 +89,29 @@ impl Db {
     }
 
     pub fn list_papers(&mut self) -> Vec<Paper> {
-        use schema::papers::dsl::*;
+        use schema::papers::dsl::papers;
         papers
             .load::<Paper>(&mut self.connection)
             .expect("Failed to load posts")
     }
 
     pub fn get_tags(&mut self, pid: i32) -> Vec<Tag> {
-        use schema::tags::dsl::*;
+        use schema::tags::dsl::{paper_id, tags};
         tags.filter(paper_id.eq(pid))
             .load::<Tag>(&mut self.connection)
-            .unwrap_or_else(|_| panic!("Failed to get tags for paper id {}", pid))
+            .unwrap_or_else(|_| panic!("Failed to get tags for paper id {pid}"))
     }
 
     pub fn get_labels(&mut self, pid: i32) -> Vec<Label> {
-        use schema::labels::dsl::*;
+        use schema::labels::dsl::{labels, paper_id};
         labels
             .filter(paper_id.eq(pid))
             .load::<Label>(&mut self.connection)
-            .unwrap_or_else(|_| panic!("Failed to get labels for paper id {}", pid))
+            .unwrap_or_else(|_| panic!("Failed to get labels for paper id {pid}"))
     }
 
     pub fn get_note(&mut self, pid: i32) -> Option<Note> {
-        use schema::notes::dsl::*;
+        use schema::notes::dsl::{notes, paper_id};
         notes
             .filter(paper_id.eq(pid))
             .first::<Note>(&mut self.connection)
@@ -127,7 +127,7 @@ impl Db {
     }
 
     pub fn update_note(&mut self, new_note: Note) {
-        use schema::notes::dsl::*;
+        use schema::notes::dsl::{content, notes};
         diesel::update(notes.find(new_note.id))
             .set(content.eq(new_note.content))
             .execute(&mut self.connection)

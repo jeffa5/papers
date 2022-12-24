@@ -13,7 +13,7 @@ fn main() {
     debug!(?options, "Parsed options");
 
     let config_file = if let Some(config_file) = options.config_file.as_ref() {
-        config_file.to_owned()
+        config_file.clone()
     } else {
         ProjectDirs::from("io", "jeffas", "papers")
             .unwrap()

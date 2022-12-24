@@ -8,14 +8,16 @@ pub struct Tag {
 impl Tag {
     pub fn new(key: &str) -> Self {
         let key = key.trim();
-        if key.contains(char::is_whitespace) {
-            panic!("Tag key contains whitespace");
-        }
+        assert!(
+            !key.contains(char::is_whitespace),
+            "Tag key contains whitespace"
+        );
         Self {
             key: key.to_owned(),
         }
     }
 
+    #[must_use]
     pub fn key(&self) -> &str {
         &self.key
     }

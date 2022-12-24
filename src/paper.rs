@@ -27,14 +27,14 @@ fn display_optional_string(s: &Option<String>) -> String {
 
 fn display_tag_vector(v: &[Tag]) -> String {
     v.iter()
-        .map(|l| l.to_string())
+        .map(std::string::ToString::to_string)
         .collect::<Vec<_>>()
         .join(" ")
 }
 
 fn display_label_vector(v: &[Label]) -> String {
     v.iter()
-        .map(|l| l.to_string())
+        .map(std::string::ToString::to_string)
         .collect::<Vec<_>>()
         .join(" ")
 }

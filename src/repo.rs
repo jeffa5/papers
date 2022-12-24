@@ -12,6 +12,7 @@ pub struct Repo {
 }
 
 impl Repo {
+    #[must_use]
     pub fn init(root: &Path) -> Self {
         let db = Db::init(root);
         Self {
@@ -20,6 +21,7 @@ impl Repo {
         }
     }
 
+    #[must_use]
     pub fn load(root: &Path) -> Self {
         let db = Db::load(root);
         Self {
