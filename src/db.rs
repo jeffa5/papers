@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 
+use diesel::sqlite::Sqlite;
 use diesel::{debug_query, prelude::*};
 use diesel::{Connection, SqliteConnection};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
@@ -70,9 +71,14 @@ impl Db {
 
     pub fn insert_tags(&mut self, tags: Vec<NewTag>) {
         use schema::tags;
-        for tag in tags {
-            diesel::insert_into(tags::table)
-                .values(tag)
+        use schema::tags::{paper_id, tag};
+        for new_tag in tags {
+            let query = diesel::insert_into(tags::table)
+                .values(new_tag)
+                .on_conflict((paper_id, tag))
+                .do_nothing();
+            debug!(query=%debug_query::<Sqlite, _>(&query), "Inserting tags");
+            query
                 .execute(&mut self.connection)
                 .expect("Failed to add tags");
         }
@@ -96,9 +102,14 @@ impl Db {
 
     pub fn insert_labels(&mut self, labels: Vec<NewLabel>) {
         use schema::labels;
+        use schema::labels::{label_key, paper_id};
         for label in labels {
-            diesel::insert_into(labels::table)
+            let query = diesel::insert_into(labels::table)
                 .values(label)
+                .on_conflict((paper_id, label_key))
+                .do_nothing();
+            debug!(query=%debug_query::<Sqlite,_>(&query), "Inserting labels");
+            query
                 .execute(&mut self.connection)
                 .expect("Failed to add labels");
         }
