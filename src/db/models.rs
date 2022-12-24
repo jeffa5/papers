@@ -20,6 +20,15 @@ pub struct NewPaper {
     pub title: Option<String>,
 }
 
+#[derive(Debug, Identifiable, AsChangeset)]
+#[diesel(table_name = papers)]
+pub struct PaperUpdate {
+    pub id: i32,
+    pub url: Option<Option<String>>,
+    pub filename: Option<String>,
+    pub title: Option<Option<String>>,
+}
+
 #[derive(Debug, Queryable)]
 pub struct Tag {
     pub id: i32,

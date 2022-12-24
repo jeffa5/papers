@@ -71,6 +71,24 @@ pub enum SubCommand {
         #[clap(name = "label", long, short)]
         labels: Vec<Label>,
     },
+    /// Update metadata about an existing paper.
+    Update {
+        /// Id of the paper.
+        #[clap()]
+        paper_id: i32,
+
+        /// Url the paper was fetched from.
+        #[clap(long, short)]
+        url: Option<String>,
+
+        /// File to add.
+        #[clap(long, short)]
+        file: Option<PathBuf>,
+
+        /// Title of the file.
+        #[clap(long)]
+        title: Option<String>,
+    },
     /// List the papers stored with this repo.
     List {
         /// Filter down to papers whose titles match this (case-insensitive).
@@ -131,6 +149,35 @@ impl SubCommand {
                 let mut repo = Repo::load(&cwd);
                 let paper = repo.add(&file, None, title, tags, labels);
                 info!(id = paper.id, filename = paper.filename, "Added paper");
+            }
+            SubCommand::Update {
+                paper_id,
+                url,
+                file,
+                title,
+            } => {
+                let cwd = current_dir().unwrap();
+                let mut repo = Repo::load(&cwd);
+                let url = if let Some(s) = url {
+                    if s.is_empty() {
+                        Some(None)
+                    } else {
+                        Some(Some(s))
+                    }
+                } else {
+                    None
+                };
+                let title = if let Some(s) = title {
+                    if s.is_empty() {
+                        Some(None)
+                    } else {
+                        Some(Some(s))
+                    }
+                } else {
+                    None
+                };
+                repo.update(paper_id, file.as_ref(), url, title);
+                info!(id = paper_id, "Updated paper");
             }
             SubCommand::List {
                 title,

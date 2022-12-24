@@ -84,6 +84,37 @@ impl Repo {
         }
     }
 
+    pub fn update<P: AsRef<Path>>(
+        &mut self,
+        paper_id: i32,
+        file: Option<&P>,
+        url: Option<Option<String>>,
+        title: Option<Option<String>>,
+    ) {
+        let filename = file.map(|file| {
+            let file = file.as_ref();
+            if !canonicalize(file)
+                .unwrap()
+                .parent()
+                .unwrap()
+                .starts_with(&self.root)
+            {
+                panic!("file doesn't live in the root")
+            }
+
+            file.file_name().unwrap().to_string_lossy().into_owned()
+        });
+
+        let paper_update = db::PaperUpdate {
+            id: paper_id,
+            url,
+            filename,
+            title,
+        };
+
+        self.db.update_paper(paper_update);
+    }
+
     pub fn list(
         &mut self,
         match_title: Option<String>,

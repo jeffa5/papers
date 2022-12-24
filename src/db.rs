@@ -55,11 +55,17 @@ impl Db {
 
     pub fn insert_paper(&mut self, paper: NewPaper) -> Paper {
         use schema::papers;
-
         diesel::insert_into(papers::table)
             .values(paper)
             .get_result(&mut self.connection)
             .expect("Failed to add paper")
+    }
+
+    pub fn update_paper(&mut self, paper: PaperUpdate) {
+        diesel::update(&paper)
+            .set(&paper)
+            .execute(&mut self.connection)
+            .expect("Failed to update paper");
     }
 
     pub fn insert_tags(&mut self, tags: Vec<NewTag>) {
