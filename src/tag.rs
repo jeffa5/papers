@@ -1,6 +1,6 @@
 use std::{fmt::Display, str::FromStr};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Tag {
     key: String,
 }
@@ -11,7 +11,7 @@ impl Tag {
         if key.contains(char::is_whitespace) {
             panic!("Tag key contains whitespace");
         }
-        Tag {
+        Self {
             key: key.to_owned(),
         }
     }
@@ -25,7 +25,7 @@ impl FromStr for Tag {
     type Err = &'static str;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Tag { key: s.to_owned() })
+        Ok(Self { key: s.to_owned() })
     }
 }
 

@@ -114,12 +114,12 @@ pub enum SubCommand {
 impl SubCommand {
     pub fn execute(self, _config: &Config) {
         match self {
-            SubCommand::Init {} => {
+            Self::Init {} => {
                 let cwd = current_dir().unwrap();
                 Repo::init(&cwd);
                 info!("Initialised the current directory")
             }
-            SubCommand::Fetch {
+            Self::Fetch {
                 url,
                 name,
                 title,
@@ -140,7 +140,7 @@ impl SubCommand {
                 let paper = repo.add(&filename, Some(url), title, tags, labels);
                 info!(id = paper.id, filename = paper.filename, "Added paper");
             }
-            SubCommand::Add {
+            Self::Add {
                 file,
                 title,
                 tags,
@@ -151,7 +151,7 @@ impl SubCommand {
                 let paper = repo.add(&file, None, title, tags, labels);
                 info!(id = paper.id, filename = paper.filename, "Added paper");
             }
-            SubCommand::Update {
+            Self::Update {
                 paper_id,
                 url,
                 file,
@@ -180,7 +180,7 @@ impl SubCommand {
                 repo.update(paper_id, file.as_ref(), url, title);
                 info!(id = paper_id, "Updated paper");
             }
-            SubCommand::List {
+            Self::List {
                 title,
                 tags,
                 labels,
@@ -195,7 +195,7 @@ impl SubCommand {
                     .separator(Separator::builder().build());
                 print_stdout(table).unwrap();
             }
-            SubCommand::Notes { paper_id } => {
+            Self::Notes { paper_id } => {
                 let cwd = current_dir().unwrap();
                 let mut repo = Repo::load(&cwd);
                 let mut note = repo.get_note(paper_id);

@@ -1,6 +1,6 @@
 use std::{fmt::Display, str::FromStr};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Label {
     key: String,
     value: String,
@@ -16,7 +16,7 @@ impl Label {
         if value.contains(char::is_whitespace) {
             panic!("Label value contains whitespace");
         }
-        Label {
+        Self {
             key: key.to_owned(),
             value: value.to_owned(),
         }
@@ -37,7 +37,7 @@ impl FromStr for Label {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let kv = s.split('=').collect::<Vec<_>>();
         match kv[..] {
-            [k, v] => Ok(Label::new(k, v)),
+            [k, v] => Ok(Self::new(k, v)),
             [_] => Err("Missing value, should be of the form `key=value`"),
             _ => Err("Too many `=`, should be of the form `key=value`"),
         }
