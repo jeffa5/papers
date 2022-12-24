@@ -91,6 +91,12 @@ pub enum SubCommand {
         #[clap(long)]
         title: Option<String>,
     },
+    /// Remove a paper from being tracked.
+    Remove {
+        /// Id of the paper to remove.
+        #[clap()]
+        paper_id: i32,
+    },
     /// Manage tags associated with a paper.
     Tags {
         #[clap(subcommand)]
@@ -201,6 +207,12 @@ impl SubCommand {
                 };
                 repo.update(paper_id, file.as_ref(), url, title);
                 info!(id = paper_id, "Updated paper");
+            }
+            Self::Remove { paper_id } => {
+                let cwd = current_dir().unwrap();
+                let mut repo = Repo::load(&cwd);
+                repo.remove(paper_id);
+                info!(id = paper_id, "Removed paper");
             }
             Self::Tags { subcommand } => {
                 subcommand.execute();

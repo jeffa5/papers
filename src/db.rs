@@ -69,6 +69,14 @@ impl Db {
             .expect("Failed to update paper");
     }
 
+    pub fn remove_paper(&mut self, paper_id_to_remove: i32) {
+        use schema::papers;
+        use schema::papers::id;
+        let query = diesel::delete(papers::table).filter(id.eq(paper_id_to_remove));
+        debug!(query=%debug_query::<Sqlite, _>(&query), "Removing paper");
+        query.execute(&mut self.connection).unwrap();
+    }
+
     pub fn insert_tags(&mut self, tags: Vec<NewTag>) {
         use schema::tags;
         use schema::tags::{paper_id, tag};

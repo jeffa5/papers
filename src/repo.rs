@@ -117,6 +117,10 @@ impl Repo {
         self.db.update_paper(paper_update);
     }
 
+    pub fn remove(&mut self, paper_id: i32) {
+        self.db.remove_paper(paper_id);
+    }
+
     pub fn add_tags(&mut self, paper_id: i32, tags: Vec<Tag>) {
         let new_tags = tags
             .iter()
