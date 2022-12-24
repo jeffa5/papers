@@ -144,12 +144,12 @@ pub enum SubCommand {
 }
 
 impl SubCommand {
-    pub fn execute(self, _config: &Config) {
+    pub fn execute(self, _config: &Config) -> anyhow::Result<()> {
         match self {
             Self::Init {} => {
-                let cwd = current_dir().unwrap();
+                let cwd = current_dir()?;
                 let _ = Repo::init(&cwd);
-                info!("Initialised the current directory")
+                info!("Initialised the current directory");
             }
             Self::Fetch {
                 url,
@@ -161,21 +161,24 @@ impl SubCommand {
                 debug!(user_agent = APP_USER_AGENT, "Building http client");
                 let client = reqwest::blocking::Client::builder()
                     .user_agent(APP_USER_AGENT)
-                    .build()
-                    .unwrap();
+                    .build()?;
                 info!(url, "Fetching");
                 let mut res = client.get(&url).send().expect("Failed to get url");
                 let filename = if let Some(name) = name {
                     name
                 } else {
-                    url.split('/').last().as_ref().unwrap().to_string()
+                    url.split('/')
+                        .last()
+                        .as_ref()
+                        .unwrap_or(&url.as_str())
+                        .to_string()
                 };
-                let mut file = File::create(&filename).unwrap();
+                let mut file = File::create(&filename)?;
                 debug!(url, filename, "Saving");
-                std::io::copy(&mut res, &mut file).unwrap();
+                std::io::copy(&mut res, &mut file)?;
                 info!(url, filename, "Fetched");
 
-                add(&filename, Some(url), title, tags, labels);
+                add(&filename, Some(url), title, tags, labels)?;
             }
             Self::Add {
                 file,
@@ -183,7 +186,7 @@ impl SubCommand {
                 tags,
                 labels,
             } => {
-                add(file, None, title, tags, labels);
+                add(file, None, title, tags, labels)?;
             }
             Self::Update {
                 paper_id,
@@ -191,8 +194,7 @@ impl SubCommand {
                 file,
                 title,
             } => {
-                let cwd = current_dir().unwrap();
-                let mut repo = Repo::load(&cwd);
+                let mut repo = load_repo()?;
                 let url = if let Some(s) = url {
                     if s.is_empty() {
                         Some(None)
@@ -218,8 +220,7 @@ impl SubCommand {
                 paper_id,
                 with_file,
             } => {
-                let cwd = current_dir().unwrap();
-                let mut repo = Repo::load(&cwd);
+                let mut repo = load_repo()?;
                 if let Some(paper) = repo.get_paper(paper_id) {
                     debug!(id = paper_id, file = paper.filename, "Removing paper");
                     repo.remove(paper_id);
@@ -230,7 +231,7 @@ impl SubCommand {
                             repo.list(Some(paper.filename.clone()), None, Vec::new(), Vec::new());
                         if papers_with_that_file.is_empty() {
                             debug!(file = paper.filename, "Removing file");
-                            remove_file(&paper.filename).unwrap();
+                            remove_file(&paper.filename)?;
                             info!(file = paper.filename, "Removed file");
                         } else {
                             let papers_with_that_file = papers_with_that_file
@@ -249,10 +250,10 @@ impl SubCommand {
                 }
             }
             Self::Tags { subcommand } => {
-                subcommand.execute();
+                subcommand.execute()?;
             }
             Self::Labels { subcommand } => {
-                subcommand.execute();
+                subcommand.execute()?;
             }
             Self::List {
                 file,
@@ -260,55 +261,59 @@ impl SubCommand {
                 tags,
                 labels,
             } => {
-                let cwd = current_dir().unwrap();
-                let mut repo = Repo::load(&cwd);
+                let mut repo = load_repo()?;
                 let papers = repo.list(file, title, tags, labels);
 
                 let table = papers
                     .with_title()
                     .border(Border::builder().build())
                     .separator(Separator::builder().build());
-                print_stdout(table).unwrap();
+                print_stdout(table)?;
             }
             Self::Notes { paper_id } => {
-                let cwd = current_dir().unwrap();
-                let mut repo = Repo::load(&cwd);
+                let mut repo = load_repo()?;
                 let mut note = repo.get_note(paper_id);
 
                 let mut file = tempfile::Builder::new()
                     .prefix(&format!("papers-{paper_id}-"))
                     .suffix(".md")
                     .rand_bytes(5)
-                    .tempfile()
-                    .unwrap();
-                write!(file, "{}", note.content).unwrap();
+                    .tempfile()?;
+                write!(file, "{}", note.content)?;
 
-                edit(file.path());
+                edit(file.path())?;
 
                 let mut content = String::new();
-                let mut file = File::open(file.path()).unwrap();
-                file.read_to_string(&mut content).unwrap();
+                let mut file = File::open(file.path())?;
+                file.read_to_string(&mut content)?;
                 note.content = content;
                 repo.update_note(note);
             }
             Self::Open { paper_id } => {
-                let cwd = current_dir().unwrap();
-                let mut repo = Repo::load(&cwd);
+                let mut repo = load_repo()?;
                 let paper = repo.get_paper(paper_id);
                 if let Some(paper) = paper {
                     info!(file = paper.filename, "Opening");
-                    open::that(paper.filename).unwrap();
+                    open::that(paper.filename)?;
                 } else {
                     warn!(id = paper_id, "No paper found");
                 }
             }
         }
+        Ok(())
     }
 }
 
-fn edit(filename: &Path) {
+fn load_repo() -> anyhow::Result<Repo> {
+    let cwd = current_dir()?;
+    let repo = Repo::load(&cwd);
+    Ok(repo)
+}
+
+fn edit(filename: &Path) -> anyhow::Result<()> {
     let editor = std::env::var("EDITOR").unwrap_or_else(|_| "vim".to_owned());
-    Command::new(editor).arg(filename).status().unwrap();
+    Command::new(editor).arg(filename).status()?;
+    Ok(())
 }
 
 #[derive(Debug, clap::Parser)]
@@ -336,19 +341,18 @@ pub enum TagsCommands {
 }
 
 impl TagsCommands {
-    pub fn execute(self) {
+    pub fn execute(self) -> anyhow::Result<()> {
         match self {
             Self::Add { paper_id, tags } => {
-                let cwd = current_dir().unwrap();
-                let mut repo = Repo::load(&cwd);
+                let mut repo = load_repo()?;
                 repo.add_tags(paper_id, tags);
             }
             Self::Remove { paper_id, tags } => {
-                let cwd = current_dir().unwrap();
-                let mut repo = Repo::load(&cwd);
+                let mut repo = load_repo()?;
                 repo.remove_tags(paper_id, tags);
             }
         }
+        Ok(())
     }
 }
 
@@ -377,19 +381,18 @@ pub enum LabelsCommands {
 }
 
 impl LabelsCommands {
-    pub fn execute(self) {
+    pub fn execute(self) -> anyhow::Result<()> {
         match self {
             Self::Add { paper_id, labels } => {
-                let cwd = current_dir().unwrap();
-                let mut repo = Repo::load(&cwd);
+                let mut repo = load_repo()?;
                 repo.add_labels(paper_id, labels);
             }
             Self::Remove { paper_id, labels } => {
-                let cwd = current_dir().unwrap();
-                let mut repo = Repo::load(&cwd);
+                let mut repo = load_repo()?;
                 repo.remove_labels(paper_id, labels);
             }
         }
+        Ok(())
     }
 }
 
@@ -399,10 +402,9 @@ fn add<P: AsRef<Path>>(
     mut title: Option<String>,
     tags: Vec<Tag>,
     labels: Vec<Label>,
-) {
+) -> anyhow::Result<()> {
     let file = file.as_ref();
-    let cwd = current_dir().unwrap();
-    let mut repo = Repo::load(&cwd);
+    let mut repo = load_repo()?;
 
     if title.is_none() {
         title = extract_title(file);
@@ -410,6 +412,8 @@ fn add<P: AsRef<Path>>(
 
     let paper = repo.add(&file, url, title, tags, labels);
     info!(id = paper.id, filename = paper.filename, "Added paper");
+
+    Ok(())
 }
 
 fn extract_title(file: &Path) -> Option<String> {
@@ -420,15 +424,14 @@ fn extract_title(file: &Path) -> Option<String> {
             // try and extract the title
             if let Some(found_title) = info.get("Title") {
                 debug!(?file, "Found title");
-                let found_title = found_title
+                if let Ok(found_title) = found_title
                     .as_string()
-                    .unwrap()
-                    .as_str()
-                    .unwrap()
-                    .into_owned();
-                if !found_title.is_empty() {
-                    debug!(?file, title = found_title, "Setting auto title");
-                    return Some(found_title);
+                    .map(|ft| ft.as_str().unwrap_or_default().into_owned())
+                {
+                    if !found_title.is_empty() {
+                        debug!(?file, title = found_title, "Setting auto title");
+                        return Some(found_title);
+                    }
                 }
             }
         }
