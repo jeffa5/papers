@@ -117,6 +117,28 @@ impl Repo {
         self.db.update_paper(paper_update);
     }
 
+    pub fn add_tags(&mut self, paper_id: i32, tags: Vec<Tag>) {
+        let new_tags = tags
+            .iter()
+            .map(|t| db::NewTag {
+                paper_id,
+                tag: t.to_string(),
+            })
+            .collect();
+        self.db.insert_tags(new_tags);
+    }
+
+    pub fn remove_tags(&mut self, paper_id: i32, tags: Vec<Tag>) {
+        let new_tags = tags
+            .iter()
+            .map(|t| db::NewTag {
+                paper_id,
+                tag: t.to_string(),
+            })
+            .collect();
+        self.db.remove_tags(new_tags);
+    }
+
     pub fn get_paper(&mut self, paper_id: i32) -> Option<Paper> {
         let db_paper = self.db.get_paper(paper_id)?;
 

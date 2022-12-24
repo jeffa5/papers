@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use diesel::prelude::*;
+use diesel::{prelude::*, debug_query};
 use diesel::{Connection, SqliteConnection};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use tracing::{debug, warn};
@@ -73,6 +73,22 @@ impl Db {
         for tag in tags {
             diesel::insert_into(tags::table)
                 .values(tag)
+                .execute(&mut self.connection)
+                .expect("Failed to add tags");
+        }
+    }
+
+    pub fn remove_tags(&mut self, tags_to_remove: Vec<NewTag>) {
+        use schema::tags;
+        use schema::tags::{paper_id, tag};
+        for tag_to_remove in tags_to_remove {
+            let query = diesel::delete(tags::table).filter(
+                paper_id
+                    .eq(tag_to_remove.paper_id)
+                    .and(tag.eq(tag_to_remove.tag)),
+            );
+            debug!(query=%debug_query(&query), "Removing tags");
+            query
                 .execute(&mut self.connection)
                 .expect("Failed to add tags");
         }

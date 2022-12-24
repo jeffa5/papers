@@ -91,6 +91,11 @@ pub enum SubCommand {
         #[clap(long)]
         title: Option<String>,
     },
+    /// Manage tags associated with a paper.
+    Tags {
+        #[clap(subcommand)]
+        subcommand: TagsCommands,
+    },
     /// List the papers stored with this repo.
     List {
         /// Filter down to papers whose titles match this (case-insensitive).
@@ -192,6 +197,9 @@ impl SubCommand {
                 repo.update(paper_id, file.as_ref(), url, title);
                 info!(id = paper_id, "Updated paper");
             }
+            Self::Tags { subcommand } => {
+                subcommand.execute();
+            }
             Self::List {
                 title,
                 tags,
@@ -246,4 +254,45 @@ impl SubCommand {
 fn edit(filename: &Path) {
     let editor = std::env::var("EDITOR").unwrap_or_else(|_| "vim".to_owned());
     Command::new(editor).arg(filename).status().unwrap();
+}
+
+#[derive(Debug, clap::Parser)]
+pub enum TagsCommands {
+    /// Add tags to a paper.
+    Add {
+        /// Id of the paper to add tags to.
+        #[clap()]
+        paper_id: i32,
+
+        /// Tags to add.
+        #[clap()]
+        tags: Vec<Tag>,
+    },
+    /// Remove tags from a paper.
+    Remove {
+        /// Id of the paper to remove tags from.
+        #[clap()]
+        paper_id: i32,
+
+        /// Tags to remove.
+        #[clap()]
+        tags: Vec<Tag>,
+    },
+}
+
+impl TagsCommands {
+    pub fn execute(self) {
+        match self {
+            Self::Add { paper_id, tags } => {
+                let cwd = current_dir().unwrap();
+                let mut repo = Repo::load(&cwd);
+                repo.add_tags(paper_id, tags);
+            }
+            Self::Remove { paper_id, tags } => {
+                let cwd = current_dir().unwrap();
+                let mut repo = Repo::load(&cwd);
+                repo.remove_tags(paper_id, tags);
+            }
+        }
+    }
 }
