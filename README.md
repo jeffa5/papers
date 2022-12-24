@@ -34,6 +34,12 @@ papers list --tags 'new'
 # list all that have the tag 'new'
 ```
 
+## Update some metadata about a paper
+
+```sh
+papers update <id> 
+```
+
 ## Notes
 
 ```sh
