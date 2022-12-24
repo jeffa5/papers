@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use diesel::{prelude::*, debug_query};
+use diesel::{debug_query, prelude::*};
 use diesel::{Connection, SqliteConnection};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use tracing::{debug, warn};
@@ -99,6 +99,22 @@ impl Db {
         for label in labels {
             diesel::insert_into(labels::table)
                 .values(label)
+                .execute(&mut self.connection)
+                .expect("Failed to add labels");
+        }
+    }
+
+    pub fn remove_labels(&mut self, labels_to_remove: Vec<DeleteLabel>) {
+        use schema::labels;
+        use schema::labels::{label_key, paper_id};
+        for label_to_remove in labels_to_remove {
+            let query = diesel::delete(labels::table).filter(
+                paper_id
+                    .eq(label_to_remove.paper_id)
+                    .and(label_key.eq(label_to_remove.label_key)),
+            );
+            debug!(query=%debug_query(&query), "Removing labels");
+            query
                 .execute(&mut self.connection)
                 .expect("Failed to add labels");
         }

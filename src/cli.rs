@@ -96,6 +96,11 @@ pub enum SubCommand {
         #[clap(subcommand)]
         subcommand: TagsCommands,
     },
+    /// Manage labels associated with a paper.
+    Labels {
+        #[clap(subcommand)]
+        subcommand: LabelsCommands,
+    },
     /// List the papers stored with this repo.
     List {
         /// Filter down to papers whose titles match this (case-insensitive).
@@ -200,6 +205,9 @@ impl SubCommand {
             Self::Tags { subcommand } => {
                 subcommand.execute();
             }
+            Self::Labels { subcommand } => {
+                subcommand.execute();
+            }
             Self::List {
                 title,
                 tags,
@@ -292,6 +300,47 @@ impl TagsCommands {
                 let cwd = current_dir().unwrap();
                 let mut repo = Repo::load(&cwd);
                 repo.remove_tags(paper_id, tags);
+            }
+        }
+    }
+}
+
+#[derive(Debug, clap::Parser)]
+pub enum LabelsCommands {
+    /// Add labels to a paper.
+    Add {
+        /// Id of the paper to add labels to.
+        #[clap()]
+        paper_id: i32,
+
+        /// Labels to add.
+        #[clap()]
+        labels: Vec<Label>,
+    },
+    /// Remove labels from a paper.
+    Remove {
+        /// Id of the paper to remove labels from.
+        #[clap()]
+        paper_id: i32,
+
+        /// Labels to remove.
+        #[clap()]
+        labels: Vec<Tag>,
+    },
+}
+
+impl LabelsCommands {
+    pub fn execute(self) {
+        match self {
+            Self::Add { paper_id, labels } => {
+                let cwd = current_dir().unwrap();
+                let mut repo = Repo::load(&cwd);
+                repo.add_labels(paper_id, labels);
+            }
+            Self::Remove { paper_id, labels } => {
+                let cwd = current_dir().unwrap();
+                let mut repo = Repo::load(&cwd);
+                repo.remove_labels(paper_id, labels);
             }
         }
     }

@@ -139,6 +139,28 @@ impl Repo {
         self.db.remove_tags(new_tags);
     }
 
+    pub fn add_labels(&mut self, paper_id: i32, labels: Vec<Label>) {
+        let new_labels = labels
+            .iter()
+            .map(|l| db::NewLabel {
+                paper_id,
+                label_key: l.key().to_owned(),
+                label_value: l.value().to_owned(),
+            })
+            .collect();
+        self.db.insert_labels(new_labels);
+    }
+
+    pub fn remove_labels(&mut self, paper_id: i32, labels: Vec<Tag>) {
+        let new_labels = labels
+            .iter()
+            .map(|t| db::DeleteLabel {
+                paper_id,
+                label_key: t.key().to_owned(),
+            })
+            .collect();
+        self.db.remove_labels(new_labels);
+    }
     pub fn get_paper(&mut self, paper_id: i32) -> Option<Paper> {
         let db_paper = self.db.get_paper(paper_id)?;
 

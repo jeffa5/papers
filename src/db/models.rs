@@ -59,6 +59,11 @@ pub struct NewLabel {
     pub label_value: String,
 }
 
+pub struct DeleteLabel {
+    pub paper_id: i32,
+    pub label_key: String,
+}
+
 #[derive(Debug, Queryable)]
 pub struct Note {
     pub id: i32,
