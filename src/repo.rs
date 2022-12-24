@@ -117,6 +117,36 @@ impl Repo {
         self.db.update_paper(paper_update);
     }
 
+    pub fn get_paper(&mut self, paper_id: i32) -> Option<Paper> {
+        let db_paper = self.db.get_paper(paper_id)?;
+
+        let tags: Vec<_> = self
+            .db
+            .get_tags(paper_id)
+            .into_iter()
+            .map(|t| Tag::new(&t.tag))
+            .collect();
+
+        let labels: Vec<_> = self
+            .db
+            .get_labels(paper_id)
+            .into_iter()
+            .map(|l| Label::new(&l.label_key, &l.label_value))
+            .collect();
+
+        let notes = self.db.get_note(paper_id).is_some();
+
+        Some(Paper {
+            id: paper_id,
+            url: db_paper.url,
+            filename: db_paper.filename,
+            title: db_paper.title,
+            tags,
+            labels,
+            notes,
+        })
+    }
+
     pub fn list(
         &mut self,
         match_title: Option<String>,

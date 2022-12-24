@@ -46,3 +46,9 @@ papers update <id>
 papers notes <id>
 # edit notes for the paper id from list
 ```
+
+## Open a paper file
+
+```sh
+papers open <id>
+```

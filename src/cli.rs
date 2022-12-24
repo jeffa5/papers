@@ -11,11 +11,13 @@ use cli_table::{
     print_stdout, WithTitle,
 };
 use papers::{repo::Repo, tag::Tag};
-use tracing::info;
+use tracing::{info, warn};
 
 use papers::label::Label;
 
 use crate::config::Config;
+
+static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
 
 #[derive(Debug, clap::Parser)]
 pub struct Cli {
@@ -109,6 +111,10 @@ pub enum SubCommand {
         paper_id: i32,
         // TODO: create another nested subcommand for show, edit, ..
     },
+    Open {
+        #[clap()]
+        paper_id: i32,
+    },
 }
 
 impl SubCommand {
@@ -126,7 +132,11 @@ impl SubCommand {
                 tags,
                 labels,
             } => {
-                let mut res = reqwest::blocking::get(&url).expect("Failed to get url");
+                let client = reqwest::blocking::Client::builder()
+                    .user_agent(APP_USER_AGENT)
+                    .build()
+                    .unwrap();
+                let mut res = client.get(&url).send().expect("Failed to get url");
                 let filename = if let Some(name) = name {
                     name
                 } else {
@@ -215,6 +225,17 @@ impl SubCommand {
                 file.read_to_string(&mut content).unwrap();
                 note.content = content;
                 repo.update_note(note);
+            }
+            Self::Open { paper_id } => {
+                let cwd = current_dir().unwrap();
+                let mut repo = Repo::load(&cwd);
+                let paper = repo.get_paper(paper_id);
+                if let Some(paper) = paper {
+                    info!(file = paper.filename, "Opening");
+                    open::that(paper.filename).unwrap();
+                } else {
+                    warn!(id = paper_id, "No paper found");
+                }
             }
         }
     }

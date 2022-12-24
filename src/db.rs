@@ -88,6 +88,11 @@ impl Db {
         }
     }
 
+    pub fn get_paper(&mut self, paper_id: i32) -> Option<Paper> {
+        use schema::papers::dsl::papers;
+        papers.find(paper_id).first(&mut self.connection).ok()
+    }
+
     pub fn list_papers(&mut self) -> Vec<Paper> {
         use schema::papers::dsl::papers;
         papers
