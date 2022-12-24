@@ -113,6 +113,10 @@ pub enum SubCommand {
     },
     /// List the papers stored with this repo.
     List {
+        /// Filter down to papers that have filenames which match this (case-insensitive).
+        #[clap(long, short)]
+        file: Option<String>,
+
         /// Filter down to papers whose titles match this (case-insensitive).
         #[clap(long)]
         title: Option<String>,
@@ -242,13 +246,14 @@ impl SubCommand {
                 subcommand.execute();
             }
             Self::List {
+                file,
                 title,
                 tags,
                 labels,
             } => {
                 let cwd = current_dir().unwrap();
                 let mut repo = Repo::load(&cwd);
-                let papers = repo.list(title, tags, labels);
+                let papers = repo.list(file, title, tags, labels);
 
                 let table = papers
                     .with_title()

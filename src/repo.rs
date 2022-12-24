@@ -197,6 +197,7 @@ impl Repo {
 
     pub fn list(
         &mut self,
+        match_file: Option<String>,
         match_title: Option<String>,
         match_tags: Vec<Tag>,
         match_labels: Vec<Label>,
@@ -204,6 +205,7 @@ impl Repo {
         let db_papers = self.db.list_papers();
         let mut papers = Vec::new();
         let match_title = match_title.map(|t| t.to_lowercase());
+        let match_file = match_file.map(|t| t.to_lowercase());
         for paper in db_papers {
             let tags: Vec<_> = self
                 .db
@@ -220,6 +222,12 @@ impl Repo {
                 .collect();
 
             let notes = self.db.get_note(paper.id).is_some();
+
+            if let Some(match_file) = match_file.as_ref() {
+                if !paper.filename.to_lowercase().contains(match_file) {
+                    continue;
+                }
+            }
 
             if let Some(match_title) = match_title.as_ref() {
                 if let Some(title) = paper.title.as_ref() {
