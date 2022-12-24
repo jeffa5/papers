@@ -103,6 +103,7 @@ pub enum SubCommand {
         #[clap(name = "label", long, short)]
         labels: Vec<Label>,
     },
+    /// Manage notes associated with a paper.
     Notes {
         #[clap()]
         paper_id: i32,
@@ -199,7 +200,12 @@ impl SubCommand {
                 let mut repo = Repo::load(&cwd);
                 let mut note = repo.get_note(paper_id);
 
-                let mut file = tempfile::NamedTempFile::new().unwrap();
+                let mut file = tempfile::Builder::new()
+                    .prefix(&format!("papers-{}-", paper_id))
+                    .suffix(".md")
+                    .rand_bytes(5)
+                    .tempfile()
+                    .unwrap();
                 write!(file, "{}", note.content).unwrap();
 
                 edit(file.path());
