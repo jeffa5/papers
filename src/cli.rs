@@ -154,10 +154,12 @@ impl SubCommand {
                 tags,
                 labels,
             } => {
+                debug!(user_agent = APP_USER_AGENT, "Building http client");
                 let client = reqwest::blocking::Client::builder()
                     .user_agent(APP_USER_AGENT)
                     .build()
                     .unwrap();
+                info!(url, "Fetching");
                 let mut res = client.get(&url).send().expect("Failed to get url");
                 let filename = if let Some(name) = name {
                     name
@@ -165,7 +167,9 @@ impl SubCommand {
                     url.split('/').last().as_ref().unwrap().to_string()
                 };
                 let mut file = File::create(&filename).unwrap();
+                debug!(url, filename, "Saving");
                 std::io::copy(&mut res, &mut file).unwrap();
+                info!(url, filename, "Fetched");
 
                 let cwd = current_dir().unwrap();
                 let mut repo = Repo::load(&cwd);
