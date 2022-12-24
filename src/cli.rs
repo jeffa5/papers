@@ -111,7 +111,9 @@ pub enum SubCommand {
         paper_id: i32,
         // TODO: create another nested subcommand for show, edit, ..
     },
+    /// Open the file for the given paper.
     Open {
+        /// Id of the paper to open.
         #[clap()]
         paper_id: i32,
     },
