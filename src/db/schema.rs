@@ -1,8 +1,7 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
-    labels (id) {
-        id -> Integer,
+    labels (paper_id, label_key) {
         paper_id -> Integer,
         label_key -> Text,
         label_value -> Text,
@@ -27,8 +26,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    tags (id) {
-        id -> Integer,
+    tags (paper_id, tag) {
         paper_id -> Integer,
         tag -> Text,
     }

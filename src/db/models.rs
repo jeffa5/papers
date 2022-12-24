@@ -31,7 +31,6 @@ pub struct PaperUpdate {
 
 #[derive(Debug, Queryable)]
 pub struct Tag {
-    pub id: i32,
     pub paper_id: i32,
     pub tag: String,
 }
@@ -45,7 +44,6 @@ pub struct NewTag {
 
 #[derive(Debug, Queryable)]
 pub struct Label {
-    pub id: i32,
     pub paper_id: i32,
     pub label_key: String,
     pub label_value: String,
