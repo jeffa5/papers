@@ -11,10 +11,10 @@ use cli_table::{
     format::{Border, Separator},
     print_stdout, WithTitle,
 };
-use papers::{author::Author, repo::Repo, tag::Tag};
+use papers_core::{author::Author, repo::Repo, tag::Tag};
 use tracing::{debug, info, warn};
 
-use papers::label::Label;
+use papers_core::label::Label;
 
 use crate::config::Config;
 
