@@ -1,4 +1,4 @@
-use crate::{label::Label, tag::Tag};
+use crate::{author::Author, label::Label, tag::Tag};
 use cli_table::Table;
 
 #[derive(Debug, Table)]
@@ -13,8 +13,17 @@ pub struct Paper {
     pub tags: Vec<Tag>,
     #[table(display_fn = "display_label_vector")]
     pub labels: Vec<Label>,
+    #[table(display_fn = "display_author_vector")]
+    pub authors: Vec<Author>,
     /// Whether this paper has notes or not
     pub notes: bool,
+}
+
+fn display_author_vector(v: &[Author]) -> String {
+    v.iter()
+        .map(std::string::ToString::to_string)
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 fn display_optional_string(s: &Option<String>) -> String {

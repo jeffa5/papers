@@ -1,6 +1,13 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
+    authors (paper_id, author) {
+        paper_id -> Integer,
+        author -> Text,
+    }
+}
+
+diesel::table! {
     labels (paper_id, label_key) {
         paper_id -> Integer,
         label_key -> Text,
@@ -32,8 +39,9 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(authors -> papers (paper_id));
 diesel::joinable!(labels -> papers (paper_id));
 diesel::joinable!(notes -> papers (paper_id));
 diesel::joinable!(tags -> papers (paper_id));
 
-diesel::allow_tables_to_appear_in_same_query!(labels, notes, papers, tags,);
+diesel::allow_tables_to_appear_in_same_query!(authors, labels, notes, papers, tags,);

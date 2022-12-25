@@ -50,7 +50,7 @@ impl Db {
         Ok(s)
     }
 
-    pub fn migrate(&mut self) ->anyhow::Result<()>{
+    pub fn migrate(&mut self) -> anyhow::Result<()> {
         self.connection.run_pending_migrations(MIGRATIONS).unwrap();
         Ok(())
     }
@@ -59,20 +59,18 @@ impl Db {
         use schema::papers;
         let paper = diesel::insert_into(papers::table)
             .values(paper)
-            .get_result(&mut self.connection)
-            ?;
-            Ok(paper)
+            .get_result(&mut self.connection)?;
+        Ok(paper)
     }
 
-    pub fn update_paper(&mut self, paper: PaperUpdate) ->anyhow::Result<()>{
+    pub fn update_paper(&mut self, paper: PaperUpdate) -> anyhow::Result<()> {
         diesel::update(&paper)
             .set(&paper)
-            .execute(&mut self.connection)
-?;
-Ok(())
+            .execute(&mut self.connection)?;
+        Ok(())
     }
 
-    pub fn remove_paper(&mut self, paper_id_to_remove: i32) ->anyhow::Result<()>{
+    pub fn remove_paper(&mut self, paper_id_to_remove: i32) -> anyhow::Result<()> {
         use schema::papers;
         use schema::papers::id;
         let query = diesel::delete(papers::table).filter(id.eq(paper_id_to_remove));
@@ -81,7 +79,7 @@ Ok(())
         Ok(())
     }
 
-    pub fn insert_tags(&mut self, tags: Vec<NewTag>) ->anyhow::Result<()>{
+    pub fn insert_tags(&mut self, tags: Vec<NewTag>) -> anyhow::Result<()> {
         use schema::tags;
         use schema::tags::{paper_id, tag};
         for new_tag in tags {
@@ -90,14 +88,12 @@ Ok(())
                 .on_conflict((paper_id, tag))
                 .do_nothing();
             debug!(query=%debug_query::<Sqlite, _>(&query), "Inserting tags");
-            query
-                .execute(&mut self.connection)
-?;
+            query.execute(&mut self.connection)?;
         }
         Ok(())
     }
 
-    pub fn remove_tags(&mut self, tags_to_remove: Vec<NewTag>) ->anyhow::Result<()>{
+    pub fn remove_tags(&mut self, tags_to_remove: Vec<NewTag>) -> anyhow::Result<()> {
         use schema::tags;
         use schema::tags::{paper_id, tag};
         for tag_to_remove in tags_to_remove {
@@ -107,14 +103,12 @@ Ok(())
                     .and(tag.eq(tag_to_remove.tag)),
             );
             debug!(query=%debug_query(&query), "Removing tags");
-            query
-                .execute(&mut self.connection)
-                ?;
+            query.execute(&mut self.connection)?;
         }
         Ok(())
     }
 
-    pub fn insert_labels(&mut self, labels: Vec<NewLabel>) ->anyhow::Result<()>{
+    pub fn insert_labels(&mut self, labels: Vec<NewLabel>) -> anyhow::Result<()> {
         use schema::labels;
         use schema::labels::{label_key, paper_id};
         for label in labels {
@@ -123,14 +117,12 @@ Ok(())
                 .on_conflict((paper_id, label_key))
                 .do_nothing();
             debug!(query=%debug_query::<Sqlite,_>(&query), "Inserting labels");
-            query
-                .execute(&mut self.connection)
-                ?;
+            query.execute(&mut self.connection)?;
         }
         Ok(())
     }
 
-    pub fn remove_labels(&mut self, labels_to_remove: Vec<DeleteLabel>) ->anyhow::Result<()>{
+    pub fn remove_labels(&mut self, labels_to_remove: Vec<DeleteLabel>) -> anyhow::Result<()> {
         use schema::labels;
         use schema::labels::{label_key, paper_id};
         for label_to_remove in labels_to_remove {
@@ -140,9 +132,7 @@ Ok(())
                     .and(label_key.eq(label_to_remove.label_key)),
             );
             debug!(query=%debug_query(&query), "Removing labels");
-            query
-                .execute(&mut self.connection)
-                ?;
+            query.execute(&mut self.connection)?;
         }
         Ok(())
     }
@@ -155,54 +145,84 @@ Ok(())
 
     pub fn list_papers(&mut self) -> anyhow::Result<Vec<Paper>> {
         use schema::papers::dsl::papers;
-        let res = papers
-            .load::<Paper>(&mut self.connection)
+        let res = papers.load::<Paper>(&mut self.connection)?;
+        Ok(res)
+    }
 
-            ?;
-    Ok(res)
+    pub fn insert_authors(&mut self, authors: Vec<NewAuthor>) -> anyhow::Result<()> {
+        use schema::authors;
+        use schema::authors::{author, paper_id};
+        for new_author in authors {
+            let query = diesel::insert_into(authors::table)
+                .values(new_author)
+                .on_conflict((paper_id, author))
+                .do_nothing();
+            debug!(query=%debug_query::<Sqlite, _>(&query), "Inserting authors");
+            query.execute(&mut self.connection)?;
+        }
+        Ok(())
+    }
+
+    pub fn remove_authors(&mut self, authors_to_remove: Vec<NewAuthor>) -> anyhow::Result<()> {
+        use schema::authors;
+        use schema::authors::{author, paper_id};
+        for author_to_remove in authors_to_remove {
+            let query = diesel::delete(authors::table).filter(
+                paper_id
+                    .eq(author_to_remove.paper_id)
+                    .and(author.eq(author_to_remove.author)),
+            );
+            debug!(query=%debug_query(&query), "Removing authors");
+            query.execute(&mut self.connection)?;
+        }
+        Ok(())
+    }
+
+    pub fn get_authors(&mut self, pid: i32) -> anyhow::Result<Vec<Author>> {
+        use schema::authors::dsl::{authors, paper_id};
+        let res = authors
+            .filter(paper_id.eq(pid))
+            .load::<Author>(&mut self.connection)?;
+        Ok(res)
     }
 
     pub fn get_tags(&mut self, pid: i32) -> anyhow::Result<Vec<Tag>> {
         use schema::tags::dsl::{paper_id, tags};
-        let res = tags.filter(paper_id.eq(pid))
-            .load::<Tag>(&mut self.connection)
-            ?;
-            Ok(res)
+        let res = tags
+            .filter(paper_id.eq(pid))
+            .load::<Tag>(&mut self.connection)?;
+        Ok(res)
     }
 
     pub fn get_labels(&mut self, pid: i32) -> anyhow::Result<Vec<Label>> {
         use schema::labels::dsl::{labels, paper_id};
         let res = labels
             .filter(paper_id.eq(pid))
-            .load::<Label>(&mut self.connection)
-            ?;
-            Ok(res)
+            .load::<Label>(&mut self.connection)?;
+        Ok(res)
     }
 
     pub fn get_note(&mut self, pid: i32) -> anyhow::Result<Note> {
         use schema::notes::dsl::{notes, paper_id};
         let res = notes
             .filter(paper_id.eq(pid))
-            .first::<Note>(&mut self.connection)
-            ?;
-            Ok(res)
+            .first::<Note>(&mut self.connection)?;
+        Ok(res)
     }
 
-    pub fn insert_note(&mut self, note: NewNote) ->anyhow::Result<()>{
+    pub fn insert_note(&mut self, note: NewNote) -> anyhow::Result<()> {
         use schema::notes;
         diesel::insert_into(notes::table)
             .values(note)
-            .execute(&mut self.connection)
-            ?;
-            Ok(())
+            .execute(&mut self.connection)?;
+        Ok(())
     }
 
-    pub fn update_note(&mut self, new_note: Note) ->anyhow::Result<()>{
+    pub fn update_note(&mut self, new_note: Note) -> anyhow::Result<()> {
         use schema::notes::dsl::{content, notes};
         diesel::update(notes.find(new_note.id))
             .set(content.eq(new_note.content))
-            .execute(&mut self.connection)
-            ?;
-            Ok(())
+            .execute(&mut self.connection)?;
+        Ok(())
     }
 }

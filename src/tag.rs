@@ -27,7 +27,7 @@ impl FromStr for Tag {
     type Err = &'static str;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self { key: s.to_owned() })
+        Ok(Self::new(s))
     }
 }
 

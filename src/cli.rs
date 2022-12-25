@@ -10,7 +10,7 @@ use cli_table::{
     format::{Border, Separator},
     print_stdout, WithTitle,
 };
-use papers::{repo::Repo, tag::Tag};
+use papers::{author::Author, repo::Repo, tag::Tag};
 use tracing::{debug, info, warn};
 
 use papers::label::Label;
@@ -47,6 +47,10 @@ pub enum SubCommand {
         #[clap(long)]
         title: Option<String>,
 
+        /// Authors to associate with this file.
+        #[clap(name = "author", long, short)]
+        authors: Vec<Author>,
+
         /// Tags to associate with this file.
         #[clap(name = "tag", long, short)]
         tags: Vec<Tag>,
@@ -64,6 +68,10 @@ pub enum SubCommand {
         /// Title of the file.
         #[clap(long)]
         title: Option<String>,
+
+        /// Authors to associate with this file.
+        #[clap(name = "author", long, short)]
+        authors: Vec<Author>,
 
         /// Tags to associate with this file.
         #[clap(name = "tag", long, short)]
@@ -101,6 +109,11 @@ pub enum SubCommand {
         #[clap(long)]
         with_file: bool,
     },
+    /// Manage authors associated with a paper.
+    Authors {
+        #[clap(subcommand)]
+        subcommand: AuthorsCommands,
+    },
     /// Manage tags associated with a paper.
     Tags {
         #[clap(subcommand)]
@@ -120,6 +133,10 @@ pub enum SubCommand {
         /// Filter down to papers whose titles match this (case-insensitive).
         #[clap(long)]
         title: Option<String>,
+
+        /// Filter down to papers that have all of the given authors.
+        #[clap(name = "author", long, short)]
+        authors: Vec<Author>,
 
         /// Filter down to papers that have all of the given tags.
         #[clap(name = "tag", long, short)]
@@ -155,6 +172,7 @@ impl SubCommand {
                 url,
                 name,
                 title,
+                authors,
                 tags,
                 labels,
             } => {
@@ -178,15 +196,16 @@ impl SubCommand {
                 std::io::copy(&mut res, &mut file)?;
                 info!(url, filename, "Fetched");
 
-                add(&filename, Some(url), title, tags, labels)?;
+                add(&filename, Some(url), title, authors, tags, labels)?;
             }
             Self::Add {
                 file,
                 title,
+                authors,
                 tags,
                 labels,
             } => {
-                add(file, None, title, tags, labels)?;
+                add(file, None, title, authors, tags, labels)?;
             }
             Self::Update {
                 paper_id,
@@ -227,8 +246,13 @@ impl SubCommand {
                     info!(id = paper_id, file = paper.filename, "Removed paper");
                     if with_file {
                         // check that the file isn't needed by another paper
-                        let papers_with_that_file =
-                            repo.list(Some(paper.filename.clone()), None, Vec::new(), Vec::new())?;
+                        let papers_with_that_file = repo.list(
+                            Some(paper.filename.clone()),
+                            None,
+                            Vec::new(),
+                            Vec::new(),
+                            Vec::new(),
+                        )?;
                         if papers_with_that_file.is_empty() {
                             debug!(file = paper.filename, "Removing file");
                             remove_file(&paper.filename)?;
@@ -249,6 +273,9 @@ impl SubCommand {
                     info!(id = paper_id, "No paper with that id to remove");
                 }
             }
+            Self::Authors { subcommand } => {
+                subcommand.execute()?;
+            }
             Self::Tags { subcommand } => {
                 subcommand.execute()?;
             }
@@ -258,11 +285,12 @@ impl SubCommand {
             Self::List {
                 file,
                 title,
+                authors,
                 tags,
                 labels,
             } => {
                 let mut repo = load_repo()?;
-                let papers = repo.list(file, title, tags, labels)?;
+                let papers = repo.list(file, title, authors, tags, labels)?;
 
                 let table = papers
                     .with_title()
@@ -316,6 +344,45 @@ fn edit(filename: &Path) -> anyhow::Result<()> {
     Ok(())
 }
 
+#[derive(Debug, clap::Parser)]
+pub enum AuthorsCommands {
+    /// Add authors to a paper.
+    Add {
+        /// Id of the paper to add authors to.
+        #[clap()]
+        paper_id: i32,
+
+        /// Authors to add.
+        #[clap()]
+        authors: Vec<Author>,
+    },
+    /// Remove authors from a paper.
+    Remove {
+        /// Id of the paper to remove authors from.
+        #[clap()]
+        paper_id: i32,
+
+        /// Authors to remove.
+        #[clap()]
+        authors: Vec<Author>,
+    },
+}
+
+impl AuthorsCommands {
+    pub fn execute(self) -> anyhow::Result<()> {
+        match self {
+            Self::Add { paper_id, authors } => {
+                let mut repo = load_repo()?;
+                repo.add_authors(paper_id, authors)?;
+            }
+            Self::Remove { paper_id, authors } => {
+                let mut repo = load_repo()?;
+                repo.remove_authors(paper_id, authors)?;
+            }
+        }
+        Ok(())
+    }
+}
 #[derive(Debug, clap::Parser)]
 pub enum TagsCommands {
     /// Add tags to a paper.
@@ -400,6 +467,7 @@ fn add<P: AsRef<Path>>(
     file: P,
     url: Option<String>,
     mut title: Option<String>,
+    mut authors: Vec<Author>,
     tags: Vec<Tag>,
     labels: Vec<Label>,
 ) -> anyhow::Result<()> {
@@ -410,7 +478,11 @@ fn add<P: AsRef<Path>>(
         title = extract_title(file);
     }
 
-    let paper = repo.add(&file, url, title, tags, labels)?;
+    if authors.is_empty() {
+        authors = extract_authors(file);
+    }
+
+    let paper = repo.add(&file, url, title, authors, tags, labels)?;
     info!(id = paper.id, filename = paper.filename, "Added paper");
 
     Ok(())
@@ -438,4 +510,32 @@ fn extract_title(file: &Path) -> Option<String> {
     }
     warn!("Couldn't find a title in pdf metadata");
     None
+}
+
+fn extract_authors(file: &Path) -> Vec<Author> {
+    if let Ok(pdf_file) = pdf::file::File::<Vec<u8>>::open(file) {
+        debug!(?file, "Loaded pdf file");
+        if let Some(info) = pdf_file.trailer.info_dict.as_ref() {
+            debug!(?file, ?info, "Found the info dict");
+            // try and extract the authors
+            if let Some(found_authors) = info.get("Author") {
+                debug!(?file, "Found authors");
+                if let Ok(found_authors) = found_authors
+                    .as_string()
+                    .map(|ft| ft.as_str().unwrap_or_default().into_owned())
+                {
+                    if !found_authors.is_empty() {
+                        debug!(?file, authors = found_authors, "Setting auto authors");
+                        return found_authors
+                            .split(',')
+                            .map(|a| a.trim())
+                            .map(Author::new)
+                            .collect();
+                    }
+                }
+            }
+        }
+    }
+    warn!("Couldn't find a title in pdf metadata");
+    Vec::new()
 }

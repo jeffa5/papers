@@ -1,3 +1,4 @@
+use super::schema::authors;
 use super::schema::labels;
 use super::schema::notes;
 use super::schema::papers;
@@ -74,4 +75,17 @@ pub struct Note {
 pub struct NewNote {
     pub paper_id: i32,
     pub content: String,
+}
+
+#[derive(Debug, Queryable)]
+pub struct Author {
+    pub paper_id: i32,
+    pub author: String,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = authors)]
+pub struct NewAuthor {
+    pub paper_id: i32,
+    pub author: String,
 }

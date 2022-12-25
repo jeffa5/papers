@@ -1,6 +1,7 @@
 use std::fs::canonicalize;
 use std::path::{Path, PathBuf};
 
+use crate::author::Author;
 use crate::db;
 use crate::label::Label;
 use crate::tag::Tag;
@@ -12,15 +13,15 @@ pub struct Repo {
 }
 
 impl Repo {
-    pub fn init(root: &Path) ->anyhow::Result< Self> {
+    pub fn init(root: &Path) -> anyhow::Result<Self> {
         let db = Db::init(root)?;
         Ok(Self {
-                    db,
-                    root: canonicalize(root)?,
-                })
+            db,
+            root: canonicalize(root)?,
+        })
     }
 
-    pub fn load(root: &Path) ->anyhow::Result< Self> {
+    pub fn load(root: &Path) -> anyhow::Result<Self> {
         let db = Db::load(root)?;
         Ok(Self {
             db,
@@ -33,12 +34,12 @@ impl Repo {
         file: &P,
         url: Option<String>,
         title: Option<String>,
+        authors: Vec<Author>,
         tags: Vec<Tag>,
         labels: Vec<Label>,
     ) -> anyhow::Result<Paper> {
         let file = file.as_ref();
-        if !canonicalize(file)
-        ?
+        if !canonicalize(file)?
             .parent()
             .unwrap()
             .starts_with(&self.root)
@@ -54,6 +55,16 @@ impl Repo {
             title,
         };
         let paper = self.db.insert_paper(paper)?;
+
+        let new_authors = authors
+            .iter()
+            .map(|t| db::NewAuthor {
+                paper_id: paper.id,
+                author: t.to_string(),
+            })
+            .collect();
+        self.db.insert_authors(new_authors)?;
+
         let new_tags = tags
             .iter()
             .map(|t| db::NewTag {
@@ -78,6 +89,7 @@ impl Repo {
             url: paper.url,
             filename: paper.filename,
             title: paper.title,
+            authors,
             tags,
             labels,
             notes: false,
@@ -90,10 +102,10 @@ impl Repo {
         file: Option<&P>,
         url: Option<Option<String>>,
         title: Option<Option<String>>,
-    ) ->anyhow::Result<()>{
-        let filename = if let Some(file) = file{
+    ) -> anyhow::Result<()> {
+        let filename = if let Some(file) = file {
             let file = file.as_ref();
-            if !canonicalize(file) ?
+            if !canonicalize(file)?
                 .parent()
                 .unwrap()
                 .starts_with(&self.root)
@@ -102,7 +114,7 @@ impl Repo {
             }
 
             Some(file.file_name().unwrap().to_string_lossy().into_owned())
-        }else{
+        } else {
             None
         };
 
@@ -117,13 +129,36 @@ impl Repo {
         Ok(())
     }
 
-    pub fn remove(&mut self, paper_id: i32) ->anyhow::Result<()>{
+    pub fn remove(&mut self, paper_id: i32) -> anyhow::Result<()> {
         self.db.remove_paper(paper_id)?;
-    Ok(())
+        Ok(())
     }
 
+    pub fn add_authors(&mut self, paper_id: i32, authors: Vec<Author>) -> anyhow::Result<()> {
+        let new_authors = authors
+            .iter()
+            .map(|t| db::NewAuthor {
+                paper_id,
+                author: t.to_string(),
+            })
+            .collect();
+        self.db.insert_authors(new_authors)?;
+        Ok(())
+    }
 
-    pub fn add_tags(&mut self, paper_id: i32, tags: Vec<Tag>) ->anyhow::Result<()>{
+    pub fn remove_authors(&mut self, paper_id: i32, authors: Vec<Author>) -> anyhow::Result<()> {
+        let new_authors = authors
+            .iter()
+            .map(|t| db::NewAuthor {
+                paper_id,
+                author: t.to_string(),
+            })
+            .collect();
+        self.db.remove_authors(new_authors)?;
+        Ok(())
+    }
+
+    pub fn add_tags(&mut self, paper_id: i32, tags: Vec<Tag>) -> anyhow::Result<()> {
         let new_tags = tags
             .iter()
             .map(|t| db::NewTag {
@@ -135,7 +170,7 @@ impl Repo {
         Ok(())
     }
 
-    pub fn remove_tags(&mut self, paper_id: i32, tags: Vec<Tag>) ->anyhow::Result<()>{
+    pub fn remove_tags(&mut self, paper_id: i32, tags: Vec<Tag>) -> anyhow::Result<()> {
         let new_tags = tags
             .iter()
             .map(|t| db::NewTag {
@@ -147,7 +182,7 @@ impl Repo {
         Ok(())
     }
 
-    pub fn add_labels(&mut self, paper_id: i32, labels: Vec<Label>) ->anyhow::Result<()>{
+    pub fn add_labels(&mut self, paper_id: i32, labels: Vec<Label>) -> anyhow::Result<()> {
         let new_labels = labels
             .iter()
             .map(|l| db::NewLabel {
@@ -160,7 +195,7 @@ impl Repo {
         Ok(())
     }
 
-    pub fn remove_labels(&mut self, paper_id: i32, labels: Vec<Tag>)->anyhow::Result<()> {
+    pub fn remove_labels(&mut self, paper_id: i32, labels: Vec<Tag>) -> anyhow::Result<()> {
         let new_labels = labels
             .iter()
             .map(|t| db::DeleteLabel {
@@ -173,6 +208,13 @@ impl Repo {
     }
     pub fn get_paper(&mut self, paper_id: i32) -> anyhow::Result<Option<Paper>> {
         let db_paper = self.db.get_paper(paper_id)?;
+
+        let authors: Vec<_> = self
+            .db
+            .get_authors(paper_id)?
+            .into_iter()
+            .map(|a| Author::new(&a.author))
+            .collect();
 
         let tags: Vec<_> = self
             .db
@@ -195,6 +237,7 @@ impl Repo {
             url: db_paper.url,
             filename: db_paper.filename,
             title: db_paper.title,
+            authors,
             tags,
             labels,
             notes,
@@ -205,6 +248,7 @@ impl Repo {
         &mut self,
         match_file: Option<String>,
         match_title: Option<String>,
+        match_authors: Vec<Author>,
         match_tags: Vec<Tag>,
         match_labels: Vec<Label>,
     ) -> anyhow::Result<Vec<Paper>> {
@@ -213,6 +257,13 @@ impl Repo {
         let match_title = match_title.map(|t| t.to_lowercase());
         let match_file = match_file.map(|t| t.to_lowercase());
         for paper in db_papers {
+            let authors: Vec<_> = self
+                .db
+                .get_authors(paper.id)?
+                .into_iter()
+                .map(|a| Author::new(&a.author))
+                .collect();
+
             let tags: Vec<_> = self
                 .db
                 .get_tags(paper.id)?
@@ -247,6 +298,12 @@ impl Repo {
 
             // TODO: push this into the DB layer
             // filter papers down
+            if !match_authors.iter().all(|a| authors.contains(a)) {
+                continue;
+            }
+
+            // TODO: push this into the DB layer
+            // filter papers down
             if !match_tags.iter().all(|t| tags.contains(t)) {
                 continue;
             }
@@ -262,6 +319,7 @@ impl Repo {
                 url: paper.url,
                 filename: paper.filename,
                 title: paper.title,
+                authors,
                 tags,
                 labels,
                 notes,
@@ -282,7 +340,7 @@ impl Repo {
         self.db.get_note(paper_id)
     }
 
-    pub fn update_note(&mut self, note: db::Note) ->anyhow::Result<()>{
+    pub fn update_note(&mut self, note: db::Note) -> anyhow::Result<()> {
         self.db.update_note(note)
     }
 }
