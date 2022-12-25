@@ -1,11 +1,12 @@
 use std::{
     env::current_dir,
     fs::{remove_file, File},
-    io::{Read, Write},
+    io::{stdout, Read, Write},
     path::{Path, PathBuf},
     process::Command,
 };
 
+use clap::ValueEnum;
 use cli_table::{
     format::{Border, Separator},
     print_stdout, WithTitle,
@@ -126,6 +127,10 @@ pub enum SubCommand {
     },
     /// List the papers stored with this repo.
     List {
+        /// Paper id's to filter to.
+        #[clap(name = "id", long)]
+        ids: Vec<i32>,
+
         /// Filter down to papers that have filenames which match this (case-insensitive).
         #[clap(long, short)]
         file: Option<String>,
@@ -145,6 +150,10 @@ pub enum SubCommand {
         /// Filter down to papers that have all of the given labels. Labels take the form `key=value`.
         #[clap(name = "label", long, short)]
         labels: Vec<Label>,
+
+        /// Output the filtered selection of papers in different formats.
+        #[clap(long, short, value_enum, default_value_t)]
+        output: OutputStyle,
     },
     /// Manage notes associated with a paper.
     Notes {
@@ -247,6 +256,7 @@ impl SubCommand {
                     if with_file {
                         // check that the file isn't needed by another paper
                         let papers_with_that_file = repo.list(
+                            Vec::new(),
                             Some(paper.filename.clone()),
                             None,
                             Vec::new(),
@@ -283,20 +293,32 @@ impl SubCommand {
                 subcommand.execute()?;
             }
             Self::List {
+                ids,
                 file,
                 title,
                 authors,
                 tags,
                 labels,
+                output,
             } => {
                 let mut repo = load_repo()?;
-                let papers = repo.list(file, title, authors, tags, labels)?;
+                let papers = repo.list(ids, file, title, authors, tags, labels)?;
 
-                let table = papers
-                    .with_title()
-                    .border(Border::builder().build())
-                    .separator(Separator::builder().build());
-                print_stdout(table)?;
+                match output {
+                    OutputStyle::Table => {
+                        let table = papers
+                            .with_title()
+                            .border(Border::builder().build())
+                            .separator(Separator::builder().build());
+                        print_stdout(table)?;
+                    }
+                    OutputStyle::Json => {
+                        serde_json::to_writer(stdout(), &papers)?;
+                    }
+                    OutputStyle::Yaml => {
+                        serde_yaml::to_writer(stdout(), &papers)?;
+                    }
+                }
             }
             Self::Notes { paper_id } => {
                 let mut repo = load_repo()?;
@@ -538,4 +560,12 @@ fn extract_authors(file: &Path) -> Vec<Author> {
     }
     warn!("Couldn't find a title in pdf metadata");
     Vec::new()
+}
+
+#[derive(Debug, Default, Clone, ValueEnum)]
+pub enum OutputStyle {
+    #[default]
+    Table,
+    Json,
+    Yaml,
 }

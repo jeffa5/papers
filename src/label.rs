@@ -1,6 +1,8 @@
 use std::{fmt::Display, str::FromStr};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+use serde::Serialize;
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Label {
     key: String,
     value: String,

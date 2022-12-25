@@ -1,7 +1,8 @@
 use crate::{author::Author, label::Label, tag::Tag};
 use cli_table::Table;
+use serde::Serialize;
 
-#[derive(Debug, Table)]
+#[derive(Debug, Table, Serialize)]
 pub struct Paper {
     pub id: i32,
     #[table(display_fn = "display_optional_string")]

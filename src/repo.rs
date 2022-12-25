@@ -246,6 +246,7 @@ impl Repo {
 
     pub fn list(
         &mut self,
+        match_ids: Vec<i32>,
         match_file: Option<String>,
         match_title: Option<String>,
         match_authors: Vec<Author>,
@@ -257,6 +258,10 @@ impl Repo {
         let match_title = match_title.map(|t| t.to_lowercase());
         let match_file = match_file.map(|t| t.to_lowercase());
         for paper in db_papers {
+            if !match_ids.is_empty() && !match_ids.contains(&paper.id) {
+                continue;
+            }
+
             let authors: Vec<_> = self
                 .db
                 .get_authors(paper.id)?
