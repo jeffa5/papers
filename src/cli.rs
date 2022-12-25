@@ -213,7 +213,7 @@ impl SubCommand {
                 } else {
                     None
                 };
-                repo.update(paper_id, file.as_ref(), url, title);
+                repo.update(paper_id, file.as_ref(), url, title)?;
                 info!(id = paper_id, "Updated paper");
             }
             Self::Remove {
@@ -221,14 +221,14 @@ impl SubCommand {
                 with_file,
             } => {
                 let mut repo = load_repo()?;
-                if let Some(paper) = repo.get_paper(paper_id) {
+                if let Ok(Some(paper)) = repo.get_paper(paper_id) {
                     debug!(id = paper_id, file = paper.filename, "Removing paper");
-                    repo.remove(paper_id);
+                    repo.remove(paper_id)?;
                     info!(id = paper_id, file = paper.filename, "Removed paper");
                     if with_file {
                         // check that the file isn't needed by another paper
                         let papers_with_that_file =
-                            repo.list(Some(paper.filename.clone()), None, Vec::new(), Vec::new());
+                            repo.list(Some(paper.filename.clone()), None, Vec::new(), Vec::new())?;
                         if papers_with_that_file.is_empty() {
                             debug!(file = paper.filename, "Removing file");
                             remove_file(&paper.filename)?;
@@ -262,7 +262,7 @@ impl SubCommand {
                 labels,
             } => {
                 let mut repo = load_repo()?;
-                let papers = repo.list(file, title, tags, labels);
+                let papers = repo.list(file, title, tags, labels)?;
 
                 let table = papers
                     .with_title()
@@ -272,7 +272,7 @@ impl SubCommand {
             }
             Self::Notes { paper_id } => {
                 let mut repo = load_repo()?;
-                let mut note = repo.get_note(paper_id);
+                let mut note = repo.get_note(paper_id)?;
 
                 let mut file = tempfile::Builder::new()
                     .prefix(&format!("papers-{paper_id}-"))
@@ -287,11 +287,11 @@ impl SubCommand {
                 let mut file = File::open(file.path())?;
                 file.read_to_string(&mut content)?;
                 note.content = content;
-                repo.update_note(note);
+                repo.update_note(note)?;
             }
             Self::Open { paper_id } => {
                 let mut repo = load_repo()?;
-                let paper = repo.get_paper(paper_id);
+                let paper = repo.get_paper(paper_id)?;
                 if let Some(paper) = paper {
                     info!(file = paper.filename, "Opening");
                     open::that(paper.filename)?;
@@ -306,7 +306,7 @@ impl SubCommand {
 
 fn load_repo() -> anyhow::Result<Repo> {
     let cwd = current_dir()?;
-    let repo = Repo::load(&cwd);
+    let repo = Repo::load(&cwd)?;
     Ok(repo)
 }
 
@@ -345,11 +345,11 @@ impl TagsCommands {
         match self {
             Self::Add { paper_id, tags } => {
                 let mut repo = load_repo()?;
-                repo.add_tags(paper_id, tags);
+                repo.add_tags(paper_id, tags)?;
             }
             Self::Remove { paper_id, tags } => {
                 let mut repo = load_repo()?;
-                repo.remove_tags(paper_id, tags);
+                repo.remove_tags(paper_id, tags)?;
             }
         }
         Ok(())
@@ -385,11 +385,11 @@ impl LabelsCommands {
         match self {
             Self::Add { paper_id, labels } => {
                 let mut repo = load_repo()?;
-                repo.add_labels(paper_id, labels);
+                repo.add_labels(paper_id, labels)?;
             }
             Self::Remove { paper_id, labels } => {
                 let mut repo = load_repo()?;
-                repo.remove_labels(paper_id, labels);
+                repo.remove_labels(paper_id, labels)?;
             }
         }
         Ok(())
@@ -410,7 +410,7 @@ fn add<P: AsRef<Path>>(
         title = extract_title(file);
     }
 
-    let paper = repo.add(&file, url, title, tags, labels);
+    let paper = repo.add(&file, url, title, tags, labels)?;
     info!(id = paper.id, filename = paper.filename, "Added paper");
 
     Ok(())

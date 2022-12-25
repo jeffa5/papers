@@ -12,22 +12,20 @@ pub struct Repo {
 }
 
 impl Repo {
-    #[must_use]
-    pub fn init(root: &Path) -> Self {
-        let db = Db::init(root);
-        Self {
-            db,
-            root: canonicalize(root).unwrap(),
-        }
+    pub fn init(root: &Path) ->anyhow::Result< Self> {
+        let db = Db::init(root)?;
+        Ok(Self {
+                    db,
+                    root: canonicalize(root)?,
+                })
     }
 
-    #[must_use]
-    pub fn load(root: &Path) -> Self {
-        let db = Db::load(root);
-        Self {
+    pub fn load(root: &Path) ->anyhow::Result< Self> {
+        let db = Db::load(root)?;
+        Ok(Self {
             db,
-            root: canonicalize(root).unwrap(),
-        }
+            root: canonicalize(root)?,
+        })
     }
 
     pub fn add<P: AsRef<Path>>(
@@ -37,10 +35,10 @@ impl Repo {
         title: Option<String>,
         tags: Vec<Tag>,
         labels: Vec<Label>,
-    ) -> Paper {
+    ) -> anyhow::Result<Paper> {
         let file = file.as_ref();
         if !canonicalize(file)
-            .unwrap()
+        ?
             .parent()
             .unwrap()
             .starts_with(&self.root)
@@ -55,7 +53,7 @@ impl Repo {
             filename: file.to_string_lossy().into_owned(),
             title,
         };
-        let paper = self.db.insert_paper(paper);
+        let paper = self.db.insert_paper(paper)?;
         let new_tags = tags
             .iter()
             .map(|t| db::NewTag {
@@ -63,7 +61,7 @@ impl Repo {
                 tag: t.to_string(),
             })
             .collect();
-        self.db.insert_tags(new_tags);
+        self.db.insert_tags(new_tags)?;
 
         let new_labels = labels
             .iter()
@@ -73,9 +71,9 @@ impl Repo {
                 label_value: l.value().to_owned(),
             })
             .collect();
-        self.db.insert_labels(new_labels);
+        self.db.insert_labels(new_labels)?;
 
-        Paper {
+        Ok(Paper {
             id: paper.id,
             url: paper.url,
             filename: paper.filename,
@@ -83,7 +81,7 @@ impl Repo {
             tags,
             labels,
             notes: false,
-        }
+        })
     }
 
     pub fn update<P: AsRef<Path>>(
@@ -92,11 +90,10 @@ impl Repo {
         file: Option<&P>,
         url: Option<Option<String>>,
         title: Option<Option<String>>,
-    ) {
-        let filename = file.map(|file| {
+    ) ->anyhow::Result<()>{
+        let filename = if let Some(file) = file{
             let file = file.as_ref();
-            if !canonicalize(file)
-                .unwrap()
+            if !canonicalize(file) ?
                 .parent()
                 .unwrap()
                 .starts_with(&self.root)
@@ -104,8 +101,10 @@ impl Repo {
                 panic!("file doesn't live in the root")
             }
 
-            file.file_name().unwrap().to_string_lossy().into_owned()
-        });
+            Some(file.file_name().unwrap().to_string_lossy().into_owned())
+        }else{
+            None
+        };
 
         let paper_update = db::PaperUpdate {
             id: paper_id,
@@ -114,14 +113,17 @@ impl Repo {
             title,
         };
 
-        self.db.update_paper(paper_update);
+        self.db.update_paper(paper_update)?;
+        Ok(())
     }
 
-    pub fn remove(&mut self, paper_id: i32) {
-        self.db.remove_paper(paper_id);
+    pub fn remove(&mut self, paper_id: i32) ->anyhow::Result<()>{
+        self.db.remove_paper(paper_id)?;
+    Ok(())
     }
 
-    pub fn add_tags(&mut self, paper_id: i32, tags: Vec<Tag>) {
+
+    pub fn add_tags(&mut self, paper_id: i32, tags: Vec<Tag>) ->anyhow::Result<()>{
         let new_tags = tags
             .iter()
             .map(|t| db::NewTag {
@@ -129,10 +131,11 @@ impl Repo {
                 tag: t.to_string(),
             })
             .collect();
-        self.db.insert_tags(new_tags);
+        self.db.insert_tags(new_tags)?;
+        Ok(())
     }
 
-    pub fn remove_tags(&mut self, paper_id: i32, tags: Vec<Tag>) {
+    pub fn remove_tags(&mut self, paper_id: i32, tags: Vec<Tag>) ->anyhow::Result<()>{
         let new_tags = tags
             .iter()
             .map(|t| db::NewTag {
@@ -140,10 +143,11 @@ impl Repo {
                 tag: t.to_string(),
             })
             .collect();
-        self.db.remove_tags(new_tags);
+        self.db.remove_tags(new_tags)?;
+        Ok(())
     }
 
-    pub fn add_labels(&mut self, paper_id: i32, labels: Vec<Label>) {
+    pub fn add_labels(&mut self, paper_id: i32, labels: Vec<Label>) ->anyhow::Result<()>{
         let new_labels = labels
             .iter()
             .map(|l| db::NewLabel {
@@ -152,10 +156,11 @@ impl Repo {
                 label_value: l.value().to_owned(),
             })
             .collect();
-        self.db.insert_labels(new_labels);
+        self.db.insert_labels(new_labels)?;
+        Ok(())
     }
 
-    pub fn remove_labels(&mut self, paper_id: i32, labels: Vec<Tag>) {
+    pub fn remove_labels(&mut self, paper_id: i32, labels: Vec<Tag>)->anyhow::Result<()> {
         let new_labels = labels
             .iter()
             .map(|t| db::DeleteLabel {
@@ -163,28 +168,29 @@ impl Repo {
                 label_key: t.key().to_owned(),
             })
             .collect();
-        self.db.remove_labels(new_labels);
+        self.db.remove_labels(new_labels)?;
+        Ok(())
     }
-    pub fn get_paper(&mut self, paper_id: i32) -> Option<Paper> {
+    pub fn get_paper(&mut self, paper_id: i32) -> anyhow::Result<Option<Paper>> {
         let db_paper = self.db.get_paper(paper_id)?;
 
         let tags: Vec<_> = self
             .db
-            .get_tags(paper_id)
+            .get_tags(paper_id)?
             .into_iter()
             .map(|t| Tag::new(&t.tag))
             .collect();
 
         let labels: Vec<_> = self
             .db
-            .get_labels(paper_id)
+            .get_labels(paper_id)?
             .into_iter()
             .map(|l| Label::new(&l.label_key, &l.label_value))
             .collect();
 
-        let notes = self.db.get_note(paper_id).is_some();
+        let notes = self.db.get_note(paper_id).is_ok();
 
-        Some(Paper {
+        Ok(Some(Paper {
             id: paper_id,
             url: db_paper.url,
             filename: db_paper.filename,
@@ -192,7 +198,7 @@ impl Repo {
             tags,
             labels,
             notes,
-        })
+        }))
     }
 
     pub fn list(
@@ -201,27 +207,27 @@ impl Repo {
         match_title: Option<String>,
         match_tags: Vec<Tag>,
         match_labels: Vec<Label>,
-    ) -> Vec<Paper> {
-        let db_papers = self.db.list_papers();
+    ) -> anyhow::Result<Vec<Paper>> {
+        let db_papers = self.db.list_papers()?;
         let mut papers = Vec::new();
         let match_title = match_title.map(|t| t.to_lowercase());
         let match_file = match_file.map(|t| t.to_lowercase());
         for paper in db_papers {
             let tags: Vec<_> = self
                 .db
-                .get_tags(paper.id)
+                .get_tags(paper.id)?
                 .into_iter()
                 .map(|t| Tag::new(&t.tag))
                 .collect();
 
             let labels: Vec<_> = self
                 .db
-                .get_labels(paper.id)
+                .get_labels(paper.id)?
                 .into_iter()
                 .map(|l| Label::new(&l.label_key, &l.label_value))
                 .collect();
 
-            let notes = self.db.get_note(paper.id).is_some();
+            let notes = self.db.get_note(paper.id).is_ok();
 
             if let Some(match_file) = match_file.as_ref() {
                 if !paper.filename.to_lowercase().contains(match_file) {
@@ -261,22 +267,22 @@ impl Repo {
                 notes,
             });
         }
-        papers
+        Ok(papers)
     }
 
-    pub fn get_note(&mut self, paper_id: i32) -> db::Note {
-        if let Some(note) = self.db.get_note(paper_id) {
-            return note;
+    pub fn get_note(&mut self, paper_id: i32) -> anyhow::Result<db::Note> {
+        if let Ok(note) = self.db.get_note(paper_id) {
+            return Ok(note);
         }
         let note = db::NewNote {
             paper_id,
             content: String::new(),
         };
-        self.db.insert_note(note);
-        self.db.get_note(paper_id).unwrap()
+        self.db.insert_note(note)?;
+        self.db.get_note(paper_id)
     }
 
-    pub fn update_note(&mut self, note: db::Note) {
+    pub fn update_note(&mut self, note: db::Note) ->anyhow::Result<()>{
         self.db.update_note(note)
     }
 }

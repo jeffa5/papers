@@ -19,7 +19,7 @@ fn main() -> anyhow::Result<()> {
     } else {
         anyhow::bail!("Failed to make project dirs")
     };
-    let config = Config::load(&config_file);
+    let config = Config::load(&config_file)?;
 
     debug!(?config, ?config_file, "Loaded config file");
 
