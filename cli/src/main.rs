@@ -2,13 +2,11 @@ use clap::Parser;
 use directories::ProjectDirs;
 use tracing::debug;
 
-use crate::config::Config;
-
-mod cli;
-mod config;
+use papers_cli_lib::cli::Cli;
+use papers_cli_lib::config::Config;
 
 fn main() -> anyhow::Result<()> {
-    let options = cli::Cli::parse();
+    let options = Cli::parse();
     tracing_subscriber::fmt::init();
     debug!(?options, "Parsed options");
 

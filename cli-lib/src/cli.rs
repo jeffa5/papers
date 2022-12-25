@@ -1,12 +1,14 @@
 use std::{
     env::current_dir,
+    ffi::OsStr,
     fs::{remove_file, File},
     io::{stdout, Read, Write},
     path::{Path, PathBuf},
     process::Command,
 };
 
-use clap::ValueEnum;
+use clap::{CommandFactory, ValueEnum};
+use clap_complete::{generate_to, Generator, Shell};
 use cli_table::{
     format::{Border, Separator},
     print_stdout, WithTitle,
@@ -166,6 +168,12 @@ pub enum SubCommand {
         /// Id of the paper to open.
         #[clap()]
         paper_id: i32,
+    },
+    Completions {
+        #[clap()]
+        shell: Shell,
+        #[clap(default_value = ".")]
+        dir: PathBuf,
     },
 }
 
@@ -348,6 +356,10 @@ impl SubCommand {
                 } else {
                     warn!(id = paper_id, "No paper found");
                 }
+            }
+            Self::Completions { shell, dir } => {
+                let path = gen_completions(shell, dir.as_os_str());
+                info!(?path, ?shell, "Generated completions");
             }
         }
         Ok(())
@@ -568,4 +580,18 @@ pub enum OutputStyle {
     Table,
     Json,
     Yaml,
+}
+
+pub fn gen_completions<S>(shell: S, outdir: &OsStr) -> PathBuf
+where
+    S: Generator,
+{
+    let mut cmd = Cli::command();
+
+    generate_to(
+        shell, &mut cmd, // We need to specify what generator to use
+        "papers", // We need to specify the bin name manually
+        outdir,   // We need to specify where to write to
+    )
+    .unwrap()
 }
