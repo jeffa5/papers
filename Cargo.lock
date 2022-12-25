@@ -1054,18 +1054,28 @@ dependencies = [
  "anyhow",
  "clap",
  "cli-table",
- "diesel",
- "diesel_migrations",
  "directories",
  "open",
+ "papers-core",
  "pdf",
  "reqwest",
- "serde",
  "serde_json",
  "serde_yaml",
  "tempfile",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "papers-core"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "cli-table",
+ "diesel",
+ "diesel_migrations",
+ "serde",
+ "tracing",
 ]
 
 [[package]]
