@@ -1,6 +1,5 @@
 use std::{
     env::current_dir,
-    ffi::OsStr,
     fs::{remove_file, File},
     io::{stdout, Read, Write},
     path::{Path, PathBuf},
@@ -358,7 +357,7 @@ impl SubCommand {
                 }
             }
             Self::Completions { shell, dir } => {
-                let path = gen_completions(shell, dir.as_os_str());
+                let path = gen_completions(shell, &dir);
                 info!(?path, ?shell, "Generated completions");
             }
         }
@@ -582,16 +581,16 @@ pub enum OutputStyle {
     Yaml,
 }
 
-pub fn gen_completions<S>(shell: S, outdir: &OsStr) -> PathBuf
+pub fn gen_completions<S>(shell: S, outdir: &Path) -> anyhow::Result<PathBuf>
 where
     S: Generator,
 {
     let mut cmd = Cli::command();
 
-    generate_to(
+    let path = generate_to(
         shell, &mut cmd, // We need to specify what generator to use
         "papers", // We need to specify the bin name manually
         outdir,   // We need to specify where to write to
-    )
-    .unwrap()
+    )?;
+    Ok(path)
 }
