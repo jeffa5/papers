@@ -21,15 +21,19 @@ use crate::config::Config;
 
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
 
+/// A paper management program.
 #[derive(Debug, clap::Parser)]
 pub struct Cli {
+    /// Config file path to load.
     #[clap(long, short)]
     pub config_file: Option<PathBuf>,
 
+    /// Commands.
     #[clap(subcommand)]
     pub cmd: SubCommand,
 }
 
+/// Subcommands for the cli.
 #[derive(Debug, clap::Subcommand)]
 pub enum SubCommand {
     /// Initialise a new paper repository.
@@ -113,16 +117,19 @@ pub enum SubCommand {
     },
     /// Manage authors associated with a paper.
     Authors {
+        /// Subcommands for managing authors.
         #[clap(subcommand)]
         subcommand: AuthorsCommands,
     },
     /// Manage tags associated with a paper.
     Tags {
+        /// Subcommands for managing tags.
         #[clap(subcommand)]
         subcommand: TagsCommands,
     },
     /// Manage labels associated with a paper.
     Labels {
+        /// Subcommands for managing labels.
         #[clap(subcommand)]
         subcommand: LabelsCommands,
     },
@@ -158,6 +165,7 @@ pub enum SubCommand {
     },
     /// Manage notes associated with a paper.
     Notes {
+        /// Id of the paper to update notes for.
         #[clap()]
         paper_id: i32,
         // TODO: create another nested subcommand for show, edit, ..
@@ -168,15 +176,19 @@ pub enum SubCommand {
         #[clap()]
         paper_id: i32,
     },
+    /// Generate cli completion files.
     Completions {
+        /// Shell to generate for.
         #[clap()]
         shell: Shell,
+        /// Directory to save completion files to.
         #[clap(default_value = ".")]
         dir: PathBuf,
     },
 }
 
 impl SubCommand {
+    /// Execute a subcommand.
     pub fn execute(self, _config: &Config) -> anyhow::Result<()> {
         match self {
             Self::Init {} => {
@@ -377,6 +389,7 @@ fn edit(filename: &Path) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Manage authors.
 #[derive(Debug, clap::Parser)]
 pub enum AuthorsCommands {
     /// Add authors to a paper.
@@ -402,6 +415,7 @@ pub enum AuthorsCommands {
 }
 
 impl AuthorsCommands {
+    /// Execute authors commands.
     pub fn execute(self) -> anyhow::Result<()> {
         match self {
             Self::Add { paper_id, authors } => {
@@ -416,6 +430,8 @@ impl AuthorsCommands {
         Ok(())
     }
 }
+
+/// Manage tags.
 #[derive(Debug, clap::Parser)]
 pub enum TagsCommands {
     /// Add tags to a paper.
@@ -441,6 +457,7 @@ pub enum TagsCommands {
 }
 
 impl TagsCommands {
+    /// Execute tags commands.
     pub fn execute(self) -> anyhow::Result<()> {
         match self {
             Self::Add { paper_id, tags } => {
@@ -456,6 +473,7 @@ impl TagsCommands {
     }
 }
 
+/// Manage labels.
 #[derive(Debug, clap::Parser)]
 pub enum LabelsCommands {
     /// Add labels to a paper.
@@ -481,6 +499,7 @@ pub enum LabelsCommands {
 }
 
 impl LabelsCommands {
+    /// Execute label commands.
     pub fn execute(self) -> anyhow::Result<()> {
         match self {
             Self::Add { paper_id, labels } => {
@@ -573,14 +592,19 @@ fn extract_authors(file: &Path) -> Vec<Author> {
     Vec::new()
 }
 
+/// Output style for lists.
 #[derive(Debug, Default, Clone, ValueEnum)]
 pub enum OutputStyle {
+    /// Pretty table format.
     #[default]
     Table,
+    /// Json format.
     Json,
+    /// Yaml format.
     Yaml,
 }
 
+/// Generate completions.
 pub fn gen_completions<S>(shell: S, outdir: &Path) -> anyhow::Result<PathBuf>
 where
     S: Generator,
@@ -593,4 +617,9 @@ where
         outdir,   // We need to specify where to write to
     )?;
     Ok(path)
+}
+
+#[test]
+fn verify_command() {
+    Cli::command().debug_assert();
 }
