@@ -1,13 +1,17 @@
 use clap::Parser;
 use directories::ProjectDirs;
+use std::io;
 use tracing::debug;
+use tracing_subscriber::util::SubscriberInitExt;
 
 use papers_cli_lib::cli::Cli;
 use papers_cli_lib::config::Config;
 
 fn main() -> anyhow::Result<()> {
     let options = Cli::parse();
-    tracing_subscriber::fmt::init();
+    let subscriber = tracing_subscriber::fmt().with_writer(io::stderr).finish();
+    subscriber.init();
+
     debug!(?options, "Parsed options");
 
     let config_file = if let Some(config_file) = options.config_file.as_ref() {
