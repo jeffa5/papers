@@ -579,7 +579,7 @@ fn extract_authors(file: &Path) -> Vec<Author> {
                     if !found_authors.is_empty() {
                         debug!(?file, authors = found_authors, "Setting auto authors");
                         return found_authors
-                            .split(',')
+                            .split(|c: char| !c.is_alphanumeric() && !c.is_whitespace())
                             .map(|a| a.trim())
                             .map(Author::new)
                             .collect();
