@@ -588,7 +588,7 @@ fn extract_authors(file: &Path) -> Vec<Author> {
             }
         }
     }
-    warn!("Couldn't find a title in pdf metadata");
+    warn!("Couldn't find authors in pdf metadata");
     Vec::new()
 }
 
