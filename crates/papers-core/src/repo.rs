@@ -1,6 +1,8 @@
 use std::fs::canonicalize;
 use std::path::{Path, PathBuf};
 
+use anyhow::Context;
+
 use crate::author::Author;
 use crate::db;
 use crate::label::Label;
@@ -13,6 +15,15 @@ pub struct Repo {
 }
 
 impl Repo {
+    #[cfg(test)]
+    pub fn in_memory(root: &Path) -> anyhow::Result<Self> {
+        let db = Db::in_memory()?;
+        Ok(Self {
+            db,
+            root: canonicalize(root)?,
+        })
+    }
+
     pub fn init(root: &Path) -> anyhow::Result<Self> {
         let db = Db::init(root)?;
         Ok(Self {
@@ -29,7 +40,7 @@ impl Repo {
         })
     }
 
-    pub fn add<P: AsRef<Path>>(
+    pub fn add<P: AsRef<Path> + ?Sized>(
         &mut self,
         file: &P,
         url: Option<String>,
@@ -39,7 +50,8 @@ impl Repo {
         labels: Vec<Label>,
     ) -> anyhow::Result<Paper> {
         let file = file.as_ref();
-        if !canonicalize(file)?
+        if !canonicalize(file)
+            .context("canonicalising the filename")?
             .parent()
             .unwrap()
             .starts_with(&self.root)
@@ -353,5 +365,95 @@ impl Repo {
 
     pub fn update_note(&mut self, note: db::Note) -> anyhow::Result<()> {
         self.db.update_note(note)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs::File;
+
+    use expect_test::expect;
+
+    use super::*;
+
+    #[test]
+    fn test_create_paper() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let mut repo = Repo::in_memory(dir.path()).unwrap();
+        let path = dir.path().join("file");
+        File::create(&path).unwrap();
+        let paper = repo
+            .add(
+                &path,
+                Some("blah".to_owned()),
+                Some("title".to_owned()),
+                vec![Author::new("a"), Author::new("b")],
+                vec![Tag::new("t1"), Tag::new("t2")],
+                vec![Label::new("k", "v")],
+            )
+            .unwrap();
+        let expect = expect![[r#"
+            Paper {
+                id: 1,
+                url: Some(
+                    "blah",
+                ),
+                filename: "file",
+                title: Some(
+                    "title",
+                ),
+                tags: [
+                    Tag {
+                        key: "t1",
+                    },
+                    Tag {
+                        key: "t2",
+                    },
+                ],
+                labels: [
+                    Label {
+                        key: "k",
+                        value: "v",
+                    },
+                ],
+                authors: [
+                    Author {
+                        author: "a",
+                    },
+                    Author {
+                        author: "b",
+                    },
+                ],
+                notes: false,
+            }
+        "#]];
+        expect.assert_debug_eq(&paper);
+    }
+
+    #[test]
+    fn test_create_remove_paper() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let mut repo = Repo::in_memory(dir.path()).unwrap();
+        let path = dir.path().join("file");
+        File::create(&path).unwrap();
+        let paper = repo
+            .add(
+                &path,
+                Some("blah".to_owned()),
+                Some("title".to_owned()),
+                vec![Author::new("a"), Author::new("b")],
+                vec![Tag::new("t1"), Tag::new("t2")],
+                vec![Label::new("k", "v")],
+            )
+            .unwrap();
+        repo.remove(paper.id).unwrap();
+        let paper = repo.get_paper(paper.id);
+
+        let expect = expect![[r#"
+            Err(
+                NotFound,
+            )
+        "#]];
+        expect.assert_debug_eq(&paper);
     }
 }

@@ -10,3 +10,7 @@ diesel_migrations = { version = "2.0.0", features = ["sqlite"] }
 serde = { version = "1.0.151", features = ["derive"] }
 cli-table = "0.4.7"
 tracing = "0.1.37"
+
+[dev-dependencies]
+expect-test = "1.4.0"
+tempfile = "3.3.0"

@@ -24,6 +24,14 @@ fn db_filename(dir: &Path) -> PathBuf {
 }
 
 impl Db {
+    #[cfg(test)]
+    pub fn in_memory() -> anyhow::Result<Self> {
+        let connection = SqliteConnection::establish(":memory:")?;
+        let mut s = Self { connection };
+        s.migrate()?;
+        Ok(s)
+    }
+
     pub fn init(dir: &Path) -> anyhow::Result<Self> {
         let file = db_filename(dir);
         if file.is_file() {

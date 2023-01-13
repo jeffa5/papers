@@ -1145,7 +1145,9 @@ dependencies = [
  "cli-table",
  "diesel",
  "diesel_migrations",
+ "expect-test",
  "serde",
+ "tempfile",
  "tracing",
 ]
 
