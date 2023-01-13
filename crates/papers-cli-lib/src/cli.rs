@@ -12,6 +12,7 @@ use cli_table::{
     format::{Border, Separator},
     print_stdout, WithTitle,
 };
+use gray_matter::{engine::YAML, Matter};
 use papers_core::{author::Author, repo::Repo, tag::Tag};
 use tracing::{debug, info, warn};
 
@@ -289,7 +290,7 @@ impl SubCommand {
             Self::Remove { ids, with_file } => {
                 let mut repo = load_repo()?;
                 for id in ids.0 {
-                    if let Ok(Some(paper)) = repo.get_paper(id) {
+                    if let Ok(paper) = repo.get_paper(id) {
                         debug!(id, file = paper.filename, "Removing paper");
                         repo.remove(id)?;
                         info!(id, file = paper.filename, "Removed paper");
@@ -366,9 +367,7 @@ impl SubCommand {
                 let mut papers = Vec::new();
                 for id in ids.0 {
                     let paper = repo.get_paper(id)?;
-                    if let Some(paper) = paper {
-                        papers.push(paper);
-                    }
+                    papers.push(paper);
                 }
                 match output {
                     OutputStyle::Table => {
@@ -390,30 +389,38 @@ impl SubCommand {
                 let mut repo = load_repo()?;
                 let mut note = repo.get_note(paper_id)?;
 
+                let paper = repo.get_paper(paper_id)?;
+                let dont_edit = "# Do not edit this metadata, write notes below.";
+                let content = format!(
+                    "---\n{}{dont_edit}\n---\n\n{}",
+                    serde_yaml::to_string(&paper).unwrap(),
+                    note.content
+                );
+
                 let mut file = tempfile::Builder::new()
                     .prefix(&format!("papers-{paper_id}-"))
                     .suffix(".md")
                     .rand_bytes(5)
                     .tempfile()?;
-                write!(file, "{}", note.content)?;
+                write!(file, "{}", content)?;
 
                 edit(file.path())?;
 
                 let mut content = String::new();
                 let mut file = File::open(file.path())?;
                 file.read_to_string(&mut content)?;
-                note.content = content;
+
+                let matter = Matter::<YAML>::new();
+                let result = matter.parse(&content);
+
+                note.content = result.content;
                 repo.update_note(note)?;
             }
             Self::Open { paper_id } => {
                 let mut repo = load_repo()?;
                 let paper = repo.get_paper(paper_id)?;
-                if let Some(paper) = paper {
-                    info!(file = paper.filename, "Opening");
-                    open::that(paper.filename)?;
-                } else {
-                    warn!(id = paper_id, "No paper found");
-                }
+                info!(file = paper.filename, "Opening");
+                open::that(paper.filename)?;
             }
             Self::Completions { shell, dir } => {
                 let path = gen_completions(shell, &dir);

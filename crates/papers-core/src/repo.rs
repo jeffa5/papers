@@ -212,7 +212,7 @@ impl Repo {
         self.db.remove_labels(new_labels)?;
         Ok(())
     }
-    pub fn get_paper(&mut self, paper_id: i32) -> anyhow::Result<Option<Paper>> {
+    pub fn get_paper(&mut self, paper_id: i32) -> anyhow::Result<Paper> {
         let db_paper = self.db.get_paper(paper_id)?;
 
         let authors: Vec<_> = self
@@ -238,7 +238,7 @@ impl Repo {
 
         let notes = self.db.get_note(paper_id).is_ok();
 
-        Ok(Some(Paper {
+        Ok(Paper {
             id: paper_id,
             url: db_paper.url,
             filename: db_paper.filename,
@@ -247,7 +247,7 @@ impl Repo {
             tags,
             labels,
             notes,
-        }))
+        })
     }
 
     pub fn list(
