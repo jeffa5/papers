@@ -163,6 +163,16 @@ pub enum SubCommand {
         #[clap(long, short, value_enum, default_value_t)]
         output: OutputStyle,
     },
+    /// Show all information about a paper.
+    Show {
+        /// Id of the paper to show information for.
+        #[clap()]
+        paper_id: i32,
+
+        /// Output the paper in different formats.
+        #[clap(long, short, value_enum, default_value_t)]
+        output: OutputStyle,
+    },
     /// Manage notes associated with a paper.
     Notes {
         /// Id of the paper to update notes for.
@@ -336,6 +346,27 @@ impl SubCommand {
                     }
                     OutputStyle::Yaml => {
                         serde_yaml::to_writer(stdout(), &papers)?;
+                    }
+                }
+            }
+            Self::Show { paper_id, output } => {
+                let mut repo = load_repo()?;
+                let paper = repo.get_paper(paper_id)?;
+                if let Some(paper) = paper {
+                    match output {
+                        OutputStyle::Table => {
+                            let table = vec![paper]
+                                .with_title()
+                                .border(Border::builder().build())
+                                .separator(Separator::builder().build());
+                            print_stdout(table)?;
+                        }
+                        OutputStyle::Json => {
+                            serde_json::to_writer(stdout(), &paper)?;
+                        }
+                        OutputStyle::Yaml => {
+                            serde_yaml::to_writer(stdout(), &paper)?;
+                        }
                     }
                 }
             }
