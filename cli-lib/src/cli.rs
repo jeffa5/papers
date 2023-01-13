@@ -219,7 +219,18 @@ impl SubCommand {
                     .user_agent(APP_USER_AGENT)
                     .build()?;
                 info!(url, "Fetching");
-                let mut res = client.get(&url).send().expect("Failed to get url");
+                let mut res = client
+                    .get(&url)
+                    .send()
+                    .expect("Failed to get url")
+                    .error_for_status()?;
+                let headers = res.headers();
+                if let Some(content_type) = headers.get(http::header::CONTENT_TYPE) {
+                    if content_type != "application/pdf" {
+                        warn!("File fetched was not a pdf, perhaps it needs authorisation?")
+                    }
+                }
+
                 let filename = if let Some(name) = name {
                     name
                 } else {
