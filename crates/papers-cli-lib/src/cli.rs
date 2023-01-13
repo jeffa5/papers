@@ -18,6 +18,7 @@ use tracing::{debug, info, warn};
 use papers_core::label::Label;
 
 use crate::config::Config;
+use crate::ids::Ids;
 
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
 
@@ -136,9 +137,8 @@ pub enum SubCommand {
     /// List the papers stored with this repo.
     List {
         /// Paper id's to filter to.
-        #[clap(name = "id", long)]
-        ids: Vec<i32>,
-
+        #[clap(name = "id", long, default_value_t)]
+        ids: Ids,
         /// Filter down to papers that have filenames which match this (case-insensitive).
         #[clap(long, short)]
         file: Option<String>,
@@ -342,7 +342,7 @@ impl SubCommand {
                 output,
             } => {
                 let mut repo = load_repo()?;
-                let papers = repo.list(ids, file, title, authors, tags, labels)?;
+                let papers = repo.list(ids.0, file, title, authors, tags, labels)?;
 
                 match output {
                     OutputStyle::Table => {

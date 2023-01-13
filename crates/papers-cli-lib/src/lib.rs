@@ -6,3 +6,5 @@
 pub mod cli;
 /// Config file resources.
 pub mod config;
+/// Multiple ids.
+pub mod ids;
