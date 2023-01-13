@@ -29,6 +29,7 @@ diesel::table! {
         url -> Nullable<Text>,
         filename -> Text,
         title -> Nullable<Text>,
+        deleted -> Bool,
     }
 }
 
@@ -44,4 +45,10 @@ diesel::joinable!(labels -> papers (paper_id));
 diesel::joinable!(notes -> papers (paper_id));
 diesel::joinable!(tags -> papers (paper_id));
 
-diesel::allow_tables_to_appear_in_same_query!(authors, labels, notes, papers, tags,);
+diesel::allow_tables_to_appear_in_same_query!(
+    authors,
+    labels,
+    notes,
+    papers,
+    tags,
+);

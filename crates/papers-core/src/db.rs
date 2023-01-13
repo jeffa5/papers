@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 
+use diesel::connection::SimpleConnection;
 use diesel::sqlite::Sqlite;
 use diesel::{debug_query, prelude::*};
 use diesel::{Connection, SqliteConnection};
@@ -59,6 +60,7 @@ impl Db {
     }
 
     pub fn migrate(&mut self) -> anyhow::Result<()> {
+        self.connection.batch_execute("PRAGMA foreign_keys = ON").unwrap();
         self.connection.run_pending_migrations(MIGRATIONS).unwrap();
         Ok(())
     }
@@ -81,7 +83,8 @@ impl Db {
     pub fn remove_paper(&mut self, paper_id_to_remove: i32) -> anyhow::Result<()> {
         use schema::papers;
         use schema::papers::id;
-        let query = diesel::delete(papers::table).filter(id.eq(paper_id_to_remove));
+        use schema::papers::deleted;
+        let query = diesel::update(papers::table).filter(id.eq(paper_id_to_remove)).set(deleted.eq(true));
         debug!(query=%debug_query::<Sqlite, _>(&query), "Removing paper");
         query.execute(&mut self.connection)?;
         Ok(())

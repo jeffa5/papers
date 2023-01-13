@@ -226,6 +226,9 @@ impl Repo {
     }
     pub fn get_paper(&mut self, paper_id: i32) -> anyhow::Result<Paper> {
         let db_paper = self.db.get_paper(paper_id)?;
+        if db_paper.deleted{
+            anyhow::bail!("Paper not found");
+        }
 
         let authors: Vec<_> = self
             .db
@@ -276,6 +279,10 @@ impl Repo {
         let match_title = match_title.map(|t| t.to_lowercase());
         let match_file = match_file.map(|t| t.to_lowercase());
         for paper in db_papers {
+            if paper.deleted {
+                continue;
+            }
+
             if !match_ids.is_empty() && !match_ids.contains(&paper.id) {
                 continue;
             }
@@ -451,7 +458,7 @@ mod tests {
 
         let expect = expect![[r#"
             Err(
-                NotFound,
+                "Paper not found",
             )
         "#]];
         expect.assert_debug_eq(&paper);
