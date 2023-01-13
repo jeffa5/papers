@@ -1081,6 +1081,7 @@ dependencies = [
  "clap_complete",
  "cli-table",
  "directories",
+ "expect-test",
  "open",
  "papers-cli-lib",
  "papers-core",
