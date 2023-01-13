@@ -40,7 +40,12 @@
       default = self.apps.${system}.papers;
     };
 
+    checks.${system} = {
+      papers = self.packages.${system}.papers;
+    };
+
     formatter.${system} = pkgs.alejandra;
+
     devShells.${system}.default = pkgs.mkShell {
       buildInputs = with pkgs; [
         (rust-bin.stable.latest.default.override {
