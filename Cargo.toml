@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "core",
-    "cli-lib",
-    "cli",
+    "crates/papers-core",
+    "crates/papers-cli-lib",
+    "crates/papers-cli",
 ]

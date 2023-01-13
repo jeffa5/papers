@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-papers-core = {path = "../core", version = "0.1.0"}
+papers-core = {path = "../papers-core", version = "0.1.0"}
 anyhow = "1.0.68"
 clap = { version = "4.0.32", features = ["derive"] }
 cli-table = "0.4.7"
