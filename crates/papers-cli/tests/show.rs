@@ -5,7 +5,9 @@ use expect_test::expect;
 
 #[test]
 fn test_help() {
-    check_ok("show --help", expect![[r#"
+    check_ok(
+        "show --help",
+        expect![[r#"
         Show all information about a paper
 
         Usage: papers show [OPTIONS] <IDS>
@@ -26,5 +28,7 @@ fn test_help() {
                   - yaml:  Yaml format
 
           -h, --help
-                  Print help information (use `-h` for a summary)"#]], expect![""]);
+                  Print help information (use `-h` for a summary)"#]],
+        expect![""],
+    );
 }

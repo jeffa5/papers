@@ -1,6 +1,6 @@
 mod common;
-use expect_test::expect;
 use common::check_ok;
+use expect_test::expect;
 
 #[test]
 fn test_help() {
