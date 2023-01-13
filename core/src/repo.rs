@@ -44,7 +44,10 @@ impl Repo {
             .unwrap()
             .starts_with(&self.root)
         {
-            panic!("file doesn't live in the root")
+            anyhow::bail!(
+                "File doesn't live in the root {}",
+                self.root.to_string_lossy()
+            )
         }
 
         let file = file.file_name().unwrap();
@@ -110,7 +113,10 @@ impl Repo {
                 .unwrap()
                 .starts_with(&self.root)
             {
-                panic!("file doesn't live in the root")
+                anyhow::bail!(
+                    "File doesn't live in the root {}",
+                    self.root.to_string_lossy()
+                )
             }
 
             Some(file.file_name().unwrap().to_string_lossy().into_owned())

@@ -28,7 +28,7 @@ impl Db {
         let file = db_filename(dir);
         if file.is_file() {
             warn!(?file, "DB file already exists, can't init");
-            panic!("Can't initialise, already a repo");
+            anyhow::bail!("Can't initialise, already a repo");
         }
         debug!(?file, "Initialising database");
         let connection = SqliteConnection::establish(&file.to_string_lossy())?;
@@ -41,7 +41,7 @@ impl Db {
         let file = db_filename(dir);
         if !file.is_file() {
             warn!(?file, "DB file doesn't exist, not initialised yet");
-            panic!("Not a repo, run `init` first");
+            anyhow::bail!("Not a repo, run `init` first");
         }
         debug!(?file, "Loading database");
         let connection = SqliteConnection::establish(&file.to_string_lossy())?;
