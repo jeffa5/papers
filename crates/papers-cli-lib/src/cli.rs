@@ -90,9 +90,9 @@ pub enum SubCommand {
     },
     /// Update metadata about an existing paper.
     Update {
-        /// Id of the paper.
+        /// Ids of papers to update, e.g. 1 1,2 1-3,5.
         #[clap()]
-        paper_id: i32,
+        ids: Ids,
 
         /// Url the paper was fetched from.
         #[clap(long, short)]
@@ -108,9 +108,9 @@ pub enum SubCommand {
     },
     /// Remove a paper from being tracked.
     Remove {
-        /// Id of the paper to remove.
+        /// Ids of papers to remove, e.g. 1 1,2 1-3,5.
         #[clap()]
-        paper_id: i32,
+        ids: Ids,
 
         /// Also remove the paper file.
         #[clap(long)]
@@ -136,8 +136,8 @@ pub enum SubCommand {
     },
     /// List the papers stored with this repo.
     List {
-        /// Paper id's to filter to.
-        #[clap(name = "id", long, default_value_t)]
+        /// Paper ids to filter to, e.g. 1 1,2 1-3,5.
+        #[clap(default_value_t)]
         ids: Ids,
         /// Filter down to papers that have filenames which match this (case-insensitive).
         #[clap(long, short)]
@@ -165,9 +165,9 @@ pub enum SubCommand {
     },
     /// Show all information about a paper.
     Show {
-        /// Id of the paper to show information for.
+        /// Ids of papers to show information for, e.g. 1 1,2 1-3,5.
         #[clap()]
-        paper_id: i32,
+        ids: Ids,
 
         /// Output the paper in different formats.
         #[clap(long, short, value_enum, default_value_t)]
@@ -257,7 +257,7 @@ impl SubCommand {
                 add(file, None, title, authors, tags, labels)?;
             }
             Self::Update {
-                paper_id,
+                ids,
                 url,
                 file,
                 title,
@@ -281,46 +281,47 @@ impl SubCommand {
                 } else {
                     None
                 };
-                repo.update(paper_id, file.as_ref(), url, title)?;
-                info!(id = paper_id, "Updated paper");
+                for id in ids.0 {
+                    repo.update(id, file.as_ref(), url.clone(), title.clone())?;
+                    info!(id, "Updated paper");
+                }
             }
-            Self::Remove {
-                paper_id,
-                with_file,
-            } => {
+            Self::Remove { ids, with_file } => {
                 let mut repo = load_repo()?;
-                if let Ok(Some(paper)) = repo.get_paper(paper_id) {
-                    debug!(id = paper_id, file = paper.filename, "Removing paper");
-                    repo.remove(paper_id)?;
-                    info!(id = paper_id, file = paper.filename, "Removed paper");
-                    if with_file {
-                        // check that the file isn't needed by another paper
-                        let papers_with_that_file = repo.list(
-                            Vec::new(),
-                            Some(paper.filename.clone()),
-                            None,
-                            Vec::new(),
-                            Vec::new(),
-                            Vec::new(),
-                        )?;
-                        if papers_with_that_file.is_empty() {
-                            debug!(file = paper.filename, "Removing file");
-                            remove_file(&paper.filename)?;
-                            info!(file = paper.filename, "Removed file");
-                        } else {
-                            let papers_with_that_file = papers_with_that_file
-                                .iter()
-                                .map(|p| p.id)
-                                .collect::<Vec<_>>();
-                            warn!(
-                                file = paper.filename,
-                                ?papers_with_that_file,
-                                "Can't remove the file, it is used by other papers"
-                            );
+                for id in ids.0 {
+                    if let Ok(Some(paper)) = repo.get_paper(id) {
+                        debug!(id, file = paper.filename, "Removing paper");
+                        repo.remove(id)?;
+                        info!(id, file = paper.filename, "Removed paper");
+                        if with_file {
+                            // check that the file isn't needed by another paper
+                            let papers_with_that_file = repo.list(
+                                Vec::new(),
+                                Some(paper.filename.clone()),
+                                None,
+                                Vec::new(),
+                                Vec::new(),
+                                Vec::new(),
+                            )?;
+                            if papers_with_that_file.is_empty() {
+                                debug!(file = paper.filename, "Removing file");
+                                remove_file(&paper.filename)?;
+                                info!(file = paper.filename, "Removed file");
+                            } else {
+                                let papers_with_that_file = papers_with_that_file
+                                    .iter()
+                                    .map(|p| p.id)
+                                    .collect::<Vec<_>>();
+                                warn!(
+                                    file = paper.filename,
+                                    ?papers_with_that_file,
+                                    "Can't remove the file, it is used by other papers"
+                                );
+                            }
                         }
+                    } else {
+                        info!(id, "No paper with that id to remove");
                     }
-                } else {
-                    info!(id = paper_id, "No paper with that id to remove");
                 }
             }
             Self::Authors { subcommand } => {
@@ -360,24 +361,28 @@ impl SubCommand {
                     }
                 }
             }
-            Self::Show { paper_id, output } => {
+            Self::Show { ids, output } => {
                 let mut repo = load_repo()?;
-                let paper = repo.get_paper(paper_id)?;
-                if let Some(paper) = paper {
-                    match output {
-                        OutputStyle::Table => {
-                            let table = vec![paper]
-                                .with_title()
-                                .border(Border::builder().build())
-                                .separator(Separator::builder().build());
-                            print_stdout(table)?;
-                        }
-                        OutputStyle::Json => {
-                            serde_json::to_writer(stdout(), &paper)?;
-                        }
-                        OutputStyle::Yaml => {
-                            serde_yaml::to_writer(stdout(), &paper)?;
-                        }
+                let mut papers = Vec::new();
+                for id in ids.0 {
+                    let paper = repo.get_paper(id)?;
+                    if let Some(paper) = paper {
+                        papers.push(paper);
+                    }
+                }
+                match output {
+                    OutputStyle::Table => {
+                        let table = papers
+                            .with_title()
+                            .border(Border::builder().build())
+                            .separator(Separator::builder().build());
+                        print_stdout(table)?;
+                    }
+                    OutputStyle::Json => {
+                        serde_json::to_writer(stdout(), &papers)?;
+                    }
+                    OutputStyle::Yaml => {
+                        serde_yaml::to_writer(stdout(), &papers)?;
                     }
                 }
             }
