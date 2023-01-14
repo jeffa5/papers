@@ -3,5 +3,8 @@ CREATE TABLE papers (
     id INTEGER NOT NULL PRIMARY KEY,
     url TEXT,
     filename TEXT NOT NULL,
-    title TEXT
+    title TEXT,
+    deleted BOOLEAN NOT NULL DEFAULT false,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    modified_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 )
