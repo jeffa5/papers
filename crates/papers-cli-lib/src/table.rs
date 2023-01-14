@@ -40,35 +40,6 @@ fn display_duration(dur: &Duration) -> String {
     }
 }
 
-fn display_author_vector(v: &[Author]) -> String {
-    v.iter()
-        .map(std::string::ToString::to_string)
-        .collect::<Vec<_>>()
-        .join(", ")
-}
-
-fn display_optional_string(s: &Option<String>) -> String {
-    if let Some(s) = s {
-        s.clone()
-    } else {
-        String::new()
-    }
-}
-
-fn display_tag_vector(v: &[Tag]) -> String {
-    v.iter()
-        .map(std::string::ToString::to_string)
-        .collect::<Vec<_>>()
-        .join(" ")
-}
-
-fn display_label_vector(v: &[Label]) -> String {
-    v.iter()
-        .map(std::string::ToString::to_string)
-        .collect::<Vec<_>>()
-        .join(" ")
-}
-
 impl TablePaper {
     /// Convert a paper to its table view counterpart.
     pub fn from_paper(p: Paper, now: chrono::NaiveDateTime) -> Self {
