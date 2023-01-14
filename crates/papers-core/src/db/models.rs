@@ -11,7 +11,7 @@ pub struct Paper {
     pub url: Option<String>,
     pub filename: String,
     pub title: Option<String>,
-    pub deleted : bool,
+    pub deleted: bool,
 }
 
 #[derive(Insertable)]

@@ -8,3 +8,6 @@ pub mod cli;
 pub mod config;
 /// Multiple ids.
 pub mod ids;
+
+/// Type for handling either urls or local file paths.
+pub mod url_path;

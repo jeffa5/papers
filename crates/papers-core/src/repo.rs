@@ -226,7 +226,7 @@ impl Repo {
     }
     pub fn get_paper(&mut self, paper_id: i32) -> anyhow::Result<Paper> {
         let db_paper = self.db.get_paper(paper_id)?;
-        if db_paper.deleted{
+        if db_paper.deleted {
             anyhow::bail!("Paper not found");
         }
 

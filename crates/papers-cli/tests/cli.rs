@@ -13,8 +13,7 @@ fn test_help() {
 
             Commands:
               init         Initialise a new paper repository
-              fetch        Fetch a paper pdf from a url and add it to the repo
-              add          Add a pdf from a local file to the repo
+              add          Add a paper document from a url or local file and add it to the repo
               update       Update metadata about an existing paper
               remove       Remove a paper from being tracked
               authors      Manage authors associated with a paper
