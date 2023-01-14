@@ -18,10 +18,14 @@ use tracing::{debug, info, warn};
 
 use papers_core::label::Label;
 
-use crate::ids::Ids;
 use crate::{config::Config, url_path::UrlOrPath};
+use crate::{ids::Ids, table::TablePaper};
 
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
+
+fn now_naive() -> chrono::NaiveDateTime {
+    chrono::Utc::now().naive_utc()
+}
 
 /// A paper management program.
 #[derive(Debug, clap::Parser)]
@@ -329,7 +333,12 @@ impl SubCommand {
 
                 match output {
                     OutputStyle::Table => {
-                        let table = papers
+                        let now = now_naive();
+                        let table_papers = papers
+                            .into_iter()
+                            .map(|paper| TablePaper::from_paper(paper, now))
+                            .collect::<Vec<_>>();
+                        let table = table_papers
                             .with_title()
                             .border(Border::builder().build())
                             .separator(Separator::builder().build());
@@ -352,7 +361,12 @@ impl SubCommand {
                 }
                 match output {
                     OutputStyle::Table => {
-                        let table = papers
+                        let now = now_naive();
+                        let table_papers = papers
+                            .into_iter()
+                            .map(|paper| TablePaper::from_paper(paper, now))
+                            .collect::<Vec<_>>();
+                        let table = table_papers
                             .with_title()
                             .border(Border::builder().build())
                             .separator(Separator::builder().build());

@@ -9,6 +9,10 @@ use crate::label::Label;
 use crate::tag::Tag;
 use crate::{db::Db, paper::Paper};
 
+fn now_naive() -> chrono::NaiveDateTime {
+    chrono::Utc::now().naive_utc()
+}
+
 pub struct Repo {
     db: Db,
     root: PathBuf,
@@ -68,6 +72,7 @@ impl Repo {
             url,
             filename: file.to_string_lossy().into_owned(),
             title,
+            modified_at: now_naive(),
         };
         let paper = self.db.insert_paper(paper)?;
 
@@ -107,7 +112,10 @@ impl Repo {
             authors,
             tags,
             labels,
-            notes: false,
+            notes: None,
+            deleted: paper.deleted,
+            created_at: paper.created_at,
+            modified_at: paper.modified_at,
         })
     }
 
@@ -141,6 +149,7 @@ impl Repo {
             url,
             filename,
             title,
+            modified_at: now_naive(),
         };
 
         self.db.update_paper(paper_update)?;
@@ -251,7 +260,7 @@ impl Repo {
             .map(|l| Label::new(&l.label_key, &l.label_value))
             .collect();
 
-        let notes = self.db.get_note(paper_id).is_ok();
+        let notes = self.db.get_note(paper_id).map(|n| n.content).ok();
 
         Ok(Paper {
             id: paper_id,
@@ -262,6 +271,9 @@ impl Repo {
             tags,
             labels,
             notes,
+            deleted: db_paper.deleted,
+            created_at: db_paper.created_at,
+            modified_at: db_paper.modified_at,
         })
     }
 
@@ -308,7 +320,7 @@ impl Repo {
                 .map(|l| Label::new(&l.label_key, &l.label_value))
                 .collect();
 
-            let notes = self.db.get_note(paper.id).is_ok();
+            let notes = self.db.get_note(paper.id).map(|n| n.content).ok();
 
             if let Some(match_file) = match_file.as_ref() {
                 if !paper.filename.to_lowercase().contains(match_file) {
@@ -353,6 +365,9 @@ impl Repo {
                 tags,
                 labels,
                 notes,
+                deleted: paper.deleted,
+                created_at: paper.created_at,
+                modified_at: paper.modified_at,
             });
         }
         Ok(papers)
@@ -379,6 +394,7 @@ impl Repo {
 mod tests {
     use std::fs::File;
 
+    use chrono::NaiveDateTime;
     use expect_test::expect;
 
     use super::*;
@@ -389,7 +405,8 @@ mod tests {
         let mut repo = Repo::in_memory(dir.path()).unwrap();
         let path = dir.path().join("file");
         File::create(&path).unwrap();
-        let paper = repo
+        let created = NaiveDateTime::default();
+        let mut paper = repo
             .add(
                 &path,
                 Some("blah".to_owned()),
@@ -399,6 +416,8 @@ mod tests {
                 vec![Label::new("k", "v")],
             )
             .unwrap();
+        paper.created_at = created;
+        paper.modified_at = created;
         let expect = expect![[r#"
             Paper {
                 id: 1,
@@ -431,7 +450,10 @@ mod tests {
                         author: "b",
                     },
                 ],
-                notes: false,
+                notes: None,
+                deleted: false,
+                created_at: 1970-01-01T00:00:00,
+                modified_at: 1970-01-01T00:00:00,
             }
         "#]];
         expect.assert_debug_eq(&paper);

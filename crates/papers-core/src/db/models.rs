@@ -12,6 +12,8 @@ pub struct Paper {
     pub filename: String,
     pub title: Option<String>,
     pub deleted: bool,
+    pub created_at: chrono::NaiveDateTime,
+    pub modified_at: chrono::NaiveDateTime,
 }
 
 #[derive(Insertable)]
@@ -20,6 +22,7 @@ pub struct NewPaper {
     pub url: Option<String>,
     pub filename: String,
     pub title: Option<String>,
+    pub modified_at: chrono::NaiveDateTime,
 }
 
 #[derive(Debug, Identifiable, AsChangeset)]
@@ -29,6 +32,7 @@ pub struct PaperUpdate {
     pub url: Option<Option<String>>,
     pub filename: Option<String>,
     pub title: Option<Option<String>>,
+    pub modified_at: chrono::NaiveDateTime,
 }
 
 #[derive(Debug, Queryable)]

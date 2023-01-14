@@ -30,6 +30,8 @@ diesel::table! {
         filename -> Text,
         title -> Nullable<Text>,
         deleted -> Bool,
+        created_at -> Timestamp,
+        modified_at -> Timestamp,
     }
 }
 

@@ -11,3 +11,6 @@ pub mod ids;
 
 /// Type for handling either urls or local file paths.
 pub mod url_path;
+
+/// Type for displaying papers in a table.
+pub mod table;

@@ -149,6 +149,7 @@ dependencies = [
  "js-sys",
  "num-integer",
  "num-traits",
+ "serde",
  "time",
  "wasm-bindgen",
  "winapi",
@@ -348,6 +349,7 @@ version = "2.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68c186a7418a2aac330bb76cde82f16c36b03a66fb91db32d20214311f9f6545"
 dependencies = [
+ "chrono",
  "diesel_derives",
  "libsqlite3-sys",
 ]
@@ -1118,6 +1120,7 @@ name = "papers-cli-lib"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "chrono",
  "clap",
  "clap_complete",
  "cli-table",
@@ -1142,7 +1145,7 @@ name = "papers-core"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "cli-table",
+ "chrono",
  "diesel",
  "diesel_migrations",
  "expect-test",
