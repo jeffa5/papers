@@ -7,7 +7,6 @@ edition = "2021"
 papers-core = {path = "../papers-core", version = "0.1.0"}
 anyhow = "1.0.68"
 clap = { version = "4.0.32", features = ["derive"] }
-cli-table = "0.4.7"
 directories = "4.0.1"
 open = "3.2.0"
 pdf = "0.7.2"
@@ -23,3 +22,4 @@ http = "0.2.8"
 expect-test = "1.4.0"
 gray_matter = "0.2.5"
 chrono = "0.4.23"
+comfy-table = "6.1.4"
