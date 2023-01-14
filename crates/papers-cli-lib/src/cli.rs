@@ -47,27 +47,19 @@ pub enum SubCommand {
     // TODO: interactive fetch and add
     /// Add a paper document from a url or local file and add it to the repo.
     Add {
-        /// Url to fetch from or path of a local file in the repo.
+        /// List of Urls to fetch from or paths of local files in the repo.
         #[clap()]
-        url_or_path: UrlOrPath,
+        url_or_path: Vec<UrlOrPath>,
 
-        /// Name of the file to save it to. Defaults to the basename of the url.
-        #[clap(long)]
-        name: Option<String>,
-
-        /// Title of the file.
-        #[clap(long)]
-        title: Option<String>,
-
-        /// Authors to associate with this file.
+        /// Authors to associate with these files.
         #[clap(name = "author", long, short)]
         authors: Vec<Author>,
 
-        /// Tags to associate with this file.
+        /// Tags to associate with these files.
         #[clap(name = "tag", long, short)]
         tags: Vec<Tag>,
 
-        /// Labels to associate with this file. Labels take the form `key=value`.
+        /// Labels to associate with these files. Labels take the form `key=value`.
         #[clap(name = "label", long, short)]
         labels: Vec<Label>,
     },
@@ -191,57 +183,100 @@ impl SubCommand {
             }
             Self::Add {
                 url_or_path,
-                name,
-                title,
                 authors,
                 tags,
                 labels,
-            } => match url_or_path {
-                UrlOrPath::Url(url) => {
-                    debug!(user_agent = APP_USER_AGENT, "Building http client");
-                    let filename = if let Some(name) = name {
-                        name
-                    } else {
-                        url.path_segments().unwrap().last().unwrap().to_owned()
-                    };
+            } => {
+                for url_or_path in url_or_path {
+                    match url_or_path {
+                        UrlOrPath::Url(url) => {
+                            let filename = url.path_segments().unwrap().last().unwrap().to_owned();
 
-                    if PathBuf::from(&filename).exists() {
-                        anyhow::bail!("Path {} already exists, try setting a name", filename);
-                    }
+                            if PathBuf::from(&filename).exists() {
+                                warn!(?filename, "Path already exists, try moving it");
+                            }
 
-                    let client = reqwest::blocking::Client::builder()
-                        .user_agent(APP_USER_AGENT)
-                        .build()?;
-                    info!(%url, "Fetching");
-                    let mut res = client
-                        .get(url.clone())
-                        .send()
-                        .expect("Failed to get url")
-                        .error_for_status()?;
-                    let headers = res.headers();
-                    if let Some(content_type) = headers.get(http::header::CONTENT_TYPE) {
-                        if content_type != "application/pdf" {
-                            warn!("File fetched was not a pdf, perhaps it needs authorisation?")
+                            debug!(user_agent = APP_USER_AGENT, "Building http client");
+                            let client = match reqwest::blocking::Client::builder()
+                                .user_agent(APP_USER_AGENT)
+                                .build()
+                            {
+                                Ok(client) => client,
+                                Err(err) => {
+                                    warn!(%err,"Failed to create http client.");
+                                    continue;
+                                }
+                            };
+                            info!(%url, "Fetching");
+                            let mut res = match client
+                                .get(url.clone())
+                                .send()
+                                .expect("Failed to get url")
+                                .error_for_status()
+                            {
+                                Ok(res) => res,
+                                Err(err) => {
+                                    warn!(%err, %url, "Failed to get resource.");
+                                    continue;
+                                }
+                            };
+                            let headers = res.headers();
+                            if let Some(content_type) = headers.get(http::header::CONTENT_TYPE) {
+                                if content_type != "application/pdf" {
+                                    warn!("File fetched was not a pdf, perhaps it needs authorisation?")
+                                }
+                            }
+
+                            let mut file = match File::create(&filename) {
+                                Ok(file) => file,
+                                Err(err) => {
+                                    warn!(%err, filename,"Failed to create file");
+                                    continue;
+                                }
+                            };
+                            debug!(%url, filename, "Saving");
+                            match std::io::copy(&mut res, &mut file) {
+                                Ok(_) => {}
+                                Err(err) => {
+                                    warn!(%err, filename, "Failed to copy from http response to file");
+                                    continue;
+                                }
+                            };
+                            info!(%url, filename, "Fetched");
+                            match add(
+                                &filename,
+                                Some(url.to_string()),
+                                None,
+                                authors.clone(),
+                                tags.clone(),
+                                labels.clone(),
+                            ) {
+                                Ok(_) => {}
+                                Err(err) => {
+                                    warn!(%err, %url, filename,"Failed to add paper");
+                                    continue;
+                                }
+                            };
+                        }
+                        UrlOrPath::Path(path) => {
+                            match add(
+                                &path,
+                                None,
+                                None,
+                                authors.clone(),
+                                tags.clone(),
+                                labels.clone(),
+                            ) {
+                                Ok(_) => {}
+                                Err(err) => {
+                                    warn!(%err, ?path,"Failed to add paper");
+                                    continue;
+                                }
+                            };
                         }
                     }
-
-                    let mut file = File::create(&filename)?;
-                    debug!(%url, filename, "Saving");
-                    std::io::copy(&mut res, &mut file)?;
-                    info!(%url, filename, "Fetched");
-                    add(
-                        &filename,
-                        Some(url.to_string()),
-                        title,
-                        authors,
-                        tags,
-                        labels,
-                    )?;
                 }
-                UrlOrPath::Path(path) => {
-                    add(path, None, title, authors, tags, labels)?;
-                }
-            },
+            }
             Self::Update {
                 ids,
                 url,
@@ -573,6 +608,10 @@ fn add<P: AsRef<Path>>(
     labels: Vec<Label>,
 ) -> anyhow::Result<()> {
     let file = file.as_ref();
+    if !file.is_file() {
+        anyhow::bail!("Path was not a file: {:?}", file);
+    }
+
     let mut repo = load_repo()?;
 
     if title.is_none() {
