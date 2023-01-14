@@ -95,7 +95,9 @@ pub struct Table {
 }
 
 fn now_naive() -> chrono::NaiveDateTime {
-    chrono::Utc::now().naive_utc()
+    let n = chrono::Utc::now().naive_utc();
+    let millis = n.timestamp();
+    chrono::NaiveDateTime::from_timestamp_opt(millis, 0).unwrap()
 }
 
 impl From<Vec<Paper>> for Table {

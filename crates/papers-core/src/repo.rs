@@ -10,7 +10,9 @@ use crate::tag::Tag;
 use crate::{db::Db, paper::Paper};
 
 fn now_naive() -> chrono::NaiveDateTime {
-    chrono::Utc::now().naive_utc()
+    let n = chrono::Utc::now().naive_utc();
+    let millis = n.timestamp();
+    chrono::NaiveDateTime::from_timestamp_opt(millis, 0).unwrap()
 }
 
 pub struct Repo {
