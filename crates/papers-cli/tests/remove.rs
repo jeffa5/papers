@@ -7,7 +7,7 @@ fn test_help() {
     check_ok(
         "remove --help",
         expect![[r#"
-            Remove a paper from being tracked
+            Remove papers from being tracked
 
             Usage: papers remove [OPTIONS] <IDS>
 

@@ -37,7 +37,7 @@ pub enum SubCommand {
     /// Initialise a new paper repository.
     Init {},
     // TODO: interactive fetch and add
-    /// Add a paper document from a url or local file and add it to the repo.
+    /// Add paper documents from a url or local file.
     Add {
         /// List of Urls to fetch from or paths of local files in the repo.
         #[clap()]
@@ -73,7 +73,7 @@ pub enum SubCommand {
         #[clap(long)]
         title: Option<String>,
     },
-    /// Remove a paper from being tracked.
+    /// Remove papers from being tracked.
     Remove {
         /// Ids of papers to remove, e.g. 1 1,2 1-3,5.
         #[clap()]
@@ -452,21 +452,21 @@ fn edit(filename: &Path) -> anyhow::Result<()> {
 /// Manage authors.
 #[derive(Debug, clap::Parser)]
 pub enum AuthorsCommands {
-    /// Add authors to a paper.
+    /// Add authors to papers.
     Add {
-        /// Id of the paper to add authors to.
+        /// Ids of papers to add authors to, e.g. 1 1,2 1-3,5.
         #[clap()]
-        paper_id: i32,
+        ids: Ids,
 
         /// Authors to add.
         #[clap()]
         authors: Vec<Author>,
     },
-    /// Remove authors from a paper.
+    /// Remove authors from papers.
     Remove {
-        /// Id of the paper to remove authors from.
+        /// Ids of papers to remove authors from, e.g. 1 1,2 1-3,5.
         #[clap()]
-        paper_id: i32,
+        ids: Ids,
 
         /// Authors to remove.
         #[clap()]
@@ -478,13 +478,21 @@ impl AuthorsCommands {
     /// Execute authors commands.
     pub fn execute(self) -> anyhow::Result<()> {
         match self {
-            Self::Add { paper_id, authors } => {
+            Self::Add { ids, authors } => {
                 let mut repo = load_repo()?;
-                repo.add_authors(paper_id, authors)?;
+                for id in ids.0 {
+                    if let Err(err) = repo.add_authors(id, authors.clone()) {
+                        warn!(id, %err, "Failed to add authors");
+                    }
+                }
             }
-            Self::Remove { paper_id, authors } => {
+            Self::Remove { ids, authors } => {
                 let mut repo = load_repo()?;
-                repo.remove_authors(paper_id, authors)?;
+                for id in ids.0 {
+                    if let Err(err) = repo.remove_authors(id, authors.clone()) {
+                        warn!(id, %err, "Failed to remove authors");
+                    }
+                }
             }
         }
         Ok(())
@@ -494,21 +502,21 @@ impl AuthorsCommands {
 /// Manage tags.
 #[derive(Debug, clap::Parser)]
 pub enum TagsCommands {
-    /// Add tags to a paper.
+    /// Add tags to papers.
     Add {
-        /// Id of the paper to add tags to.
+        /// Ids of papers to add tags to, e.g. 1 1,2 1-3,5.
         #[clap()]
-        paper_id: i32,
+        ids: Ids,
 
         /// Tags to add.
         #[clap()]
         tags: Vec<Tag>,
     },
-    /// Remove tags from a paper.
+    /// Remove tags from papers.
     Remove {
-        /// Id of the paper to remove tags from.
+        /// Ids of papers to remove tags from, e.g. 1 1,2 1-3,5.
         #[clap()]
-        paper_id: i32,
+        ids: Ids,
 
         /// Tags to remove.
         #[clap()]
@@ -520,13 +528,21 @@ impl TagsCommands {
     /// Execute tags commands.
     pub fn execute(self) -> anyhow::Result<()> {
         match self {
-            Self::Add { paper_id, tags } => {
+            Self::Add { ids, tags } => {
                 let mut repo = load_repo()?;
-                repo.add_tags(paper_id, tags)?;
+                for id in ids.0 {
+                    if let Err(err) = repo.add_tags(id, tags.clone()) {
+                        warn!(id, %err, "Failed to add tags");
+                    }
+                }
             }
-            Self::Remove { paper_id, tags } => {
+            Self::Remove { ids, tags } => {
                 let mut repo = load_repo()?;
-                repo.remove_tags(paper_id, tags)?;
+                for id in ids.0 {
+                    if let Err(err) = repo.remove_tags(id, tags.clone()) {
+                        warn!(id, %err, "Failed to remove tags");
+                    }
+                }
             }
         }
         Ok(())
@@ -536,21 +552,21 @@ impl TagsCommands {
 /// Manage labels.
 #[derive(Debug, clap::Parser)]
 pub enum LabelsCommands {
-    /// Add labels to a paper.
+    /// Add labels to papers.
     Add {
-        /// Id of the paper to add labels to.
+        /// Ids of papers to add labels to, e.g. 1 1,2 1-3,5.
         #[clap()]
-        paper_id: i32,
+        ids: Ids,
 
         /// Labels to add.
         #[clap()]
         labels: Vec<Label>,
     },
-    /// Remove labels from a paper.
+    /// Remove labels from papers.
     Remove {
-        /// Id of the paper to remove labels from.
+        /// Ids of papers to remove labels from, e.g. 1 1,2 1-3,5.
         #[clap()]
-        paper_id: i32,
+        ids: Ids,
 
         /// Labels to remove.
         #[clap()]
@@ -562,13 +578,21 @@ impl LabelsCommands {
     /// Execute label commands.
     pub fn execute(self) -> anyhow::Result<()> {
         match self {
-            Self::Add { paper_id, labels } => {
+            Self::Add { ids, labels } => {
                 let mut repo = load_repo()?;
-                repo.add_labels(paper_id, labels)?;
+                for id in ids.0 {
+                    if let Err(err) = repo.add_labels(id, labels.clone()) {
+                        warn!(id, %err, "Failed to add labels");
+                    }
+                }
             }
-            Self::Remove { paper_id, labels } => {
+            Self::Remove { ids, labels } => {
                 let mut repo = load_repo()?;
-                repo.remove_labels(paper_id, labels)?;
+                for id in ids.0 {
+                    if let Err(err) = repo.remove_labels(id, labels.clone()) {
+                        warn!(id, %err, "Failed to remove labels");
+                    }
+                }
             }
         }
         Ok(())

@@ -12,8 +12,8 @@ fn test_help() {
             Usage: papers tags <COMMAND>
 
             Commands:
-              add     Add tags to a paper
-              remove  Remove tags from a paper
+              add     Add tags to papers
+              remove  Remove tags from papers
               help    Print this message or the help of the given subcommand(s)
 
             Options:

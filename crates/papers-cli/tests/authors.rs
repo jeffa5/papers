@@ -12,8 +12,8 @@ fn test_help() {
             Usage: papers authors <COMMAND>
 
             Commands:
-              add     Add authors to a paper
-              remove  Remove authors from a paper
+              add     Add authors to papers
+              remove  Remove authors from papers
               help    Print this message or the help of the given subcommand(s)
 
             Options:

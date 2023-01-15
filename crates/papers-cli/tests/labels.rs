@@ -12,8 +12,8 @@ fn test_help() {
             Usage: papers labels <COMMAND>
 
             Commands:
-              add     Add labels to a paper
-              remove  Remove labels from a paper
+              add     Add labels to papers
+              remove  Remove labels from papers
               help    Print this message or the help of the given subcommand(s)
 
             Options:

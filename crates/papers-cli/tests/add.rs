@@ -7,7 +7,7 @@ fn test_help() {
     check_ok(
         "add --help",
         expect![[r#"
-            Add a paper document from a url or local file and add it to the repo
+            Add paper documents from a url or local file
 
             Usage: papers add [OPTIONS] [URL_OR_PATH]...
 
