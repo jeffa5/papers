@@ -105,8 +105,8 @@ pub enum SubCommand {
     /// List the papers stored with this repo.
     List {
         /// Paper ids to filter to, e.g. 1 1,2 1-3,5.
-        #[clap(default_value_t)]
-        ids: Ids,
+        #[clap()]
+        ids: Option<Ids>,
         /// Filter down to papers that have filenames which match this (case-insensitive).
         #[clap(long, short)]
         file: Option<String>,
@@ -350,7 +350,14 @@ impl SubCommand {
                 output,
             } => {
                 let mut repo = load_repo()?;
-                let papers = repo.list(ids.0, file, title, authors, tags, labels)?;
+                let papers = repo.list(
+                    ids.unwrap_or_default().0,
+                    file,
+                    title,
+                    authors,
+                    tags,
+                    labels,
+                )?;
 
                 match output {
                     OutputStyle::Table => {

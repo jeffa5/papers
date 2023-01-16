@@ -9,18 +9,31 @@ use std::{collections::BTreeSet, fmt::Display, str::FromStr};
 pub struct Ids(pub Vec<i32>);
 
 impl FromStr for Ids {
-    type Err = &'static str;
+    type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut ids = BTreeSet::new();
 
+        if s.is_empty() {
+            return Err("No ids found".to_owned());
+        }
+
         for s in s.split(',') {
             if let Some((start, end)) = s.split_once('-') {
-                if let Some((start, end)) = start.parse::<i32>().ok().zip(end.parse().ok()) {
-                    ids.extend(start..=end)
+                let start = start
+                    .parse::<i32>()
+                    .map_err(|e| format!("Failed to parse {} as id: {}", start, e))?;
+                let end = end
+                    .parse::<i32>()
+                    .map_err(|e| format!("Failed to parse {} as id: {}", end, e))?;
+                ids.extend(start..=end);
+            } else {
+                match s.parse() {
+                    Ok(id) => {
+                        ids.insert(id);
+                    }
+                    Err(err) => return Err(format!("Failed to parse {} as id: {}", s, err)),
                 }
-            } else if let Ok(id) = s.parse() {
-                ids.insert(id);
             }
         }
 
