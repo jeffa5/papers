@@ -130,16 +130,6 @@ pub enum SubCommand {
         #[clap(long, short, value_enum, default_value_t)]
         output: OutputStyle,
     },
-    /// Show all information about a paper.
-    Show {
-        /// Ids of papers to show information for, e.g. 1 1,2 1-3,5.
-        #[clap()]
-        ids: Ids,
-
-        /// Output the paper in different formats.
-        #[clap(long, short, value_enum, default_value_t)]
-        output: OutputStyle,
-    },
     /// Manage notes associated with a paper.
     Notes {
         /// Id of the paper to update notes for.
@@ -358,26 +348,6 @@ impl SubCommand {
                 let mut repo = load_repo()?;
                 let papers = repo.list(ids.0, file, title, authors, tags, labels)?;
 
-                match output {
-                    OutputStyle::Table => {
-                        let table = Table::from(papers);
-                        println!("{table}");
-                    }
-                    OutputStyle::Json => {
-                        serde_json::to_writer(stdout(), &papers)?;
-                    }
-                    OutputStyle::Yaml => {
-                        serde_yaml::to_writer(stdout(), &papers)?;
-                    }
-                }
-            }
-            Self::Show { ids, output } => {
-                let mut repo = load_repo()?;
-                let mut papers = Vec::new();
-                for id in ids.0 {
-                    let paper = repo.get_paper(id)?;
-                    papers.push(paper);
-                }
                 match output {
                     OutputStyle::Table => {
                         let table = Table::from(papers);

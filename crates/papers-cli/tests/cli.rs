@@ -20,7 +20,6 @@ fn test_help() {
               tags         Manage tags associated with a paper
               labels       Manage labels associated with a paper
               list         List the papers stored with this repo
-              show         Show all information about a paper
               notes        Manage notes associated with a paper
               open         Open the file for the given paper
               completions  Generate cli completion files
