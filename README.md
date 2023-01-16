@@ -9,19 +9,12 @@ papers init
 # creates sqlite db file
 ```
 
-## Fetching
-
-```sh
-papers fetch --tag '<tag>' <url>
-# downloads pdf at the given url to the current repo directory and adds the tags with them to the db
-```
-
 ## Add
 
 To add a file without fetching it run
 
 ```sh
-papers add --tag '<tag>' <file>
+papers add --tag '<tag>' <file|url>
 ```
 
 ## Listing
@@ -37,7 +30,7 @@ papers list --tags 'new'
 ## Update some metadata about a paper
 
 ```sh
-papers update <id> 
+papers update <id>
 ```
 
 ## Notes
