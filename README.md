@@ -2,6 +2,8 @@
 
 Papers is a paper repository management tool for ingesting, managing and searching papers.
 
+It is inspired by the [papr](https://github.com/daniel-e/papr) tool used in [this blog post](https://segv.dev/paper-reading-workflow/).
+
 ## Create a repo
 
 ```sh
