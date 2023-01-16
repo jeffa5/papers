@@ -1,5 +1,6 @@
 use clap::Parser;
 use directories::ProjectDirs;
+use tracing_subscriber::EnvFilter;
 use std::io;
 use tracing::debug;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -9,7 +10,10 @@ use papers_cli_lib::config::Config;
 
 fn main() -> anyhow::Result<()> {
     let options = Cli::parse();
-    let subscriber = tracing_subscriber::fmt().with_writer(io::stderr).finish();
+    let subscriber = tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_default_env())
+        .with_writer(io::stderr)
+        .finish();
     subscriber.init();
 
     debug!(?options, "Parsed options");
