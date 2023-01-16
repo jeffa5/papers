@@ -649,6 +649,7 @@ fn extract_authors(file: &Path) -> BTreeSet<Author> {
                                 return found_authors
                                     .split(|c: char| !c.is_alphanumeric() && !c.is_whitespace())
                                     .map(|a| a.trim())
+                                    .filter(|s| !s.is_empty())
                                     .map(Author::new)
                                     .collect();
                             } else {
