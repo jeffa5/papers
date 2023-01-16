@@ -653,27 +653,36 @@ fn extract_title(file: &Path) -> Option<String> {
 }
 
 fn extract_authors(file: &Path) -> Vec<Author> {
-    if let Ok(pdf_file) = pdf::file::File::<Vec<u8>>::open(file) {
-        debug!(?file, "Loaded pdf file");
-        if let Some(info) = pdf_file.trailer.info_dict.as_ref() {
-            debug!(?file, ?info, "Found the info dict");
-            // try and extract the authors
-            if let Some(found_authors) = info.get("Author") {
-                debug!(?file, "Found authors");
-                if let Ok(found_authors) = found_authors
-                    .as_string()
-                    .map(|ft| ft.as_str().unwrap_or_default().into_owned())
-                {
-                    if !found_authors.is_empty() {
-                        debug!(?file, authors = found_authors, "Setting auto authors");
-                        return found_authors
-                            .split(|c: char| !c.is_alphanumeric() && !c.is_whitespace())
-                            .map(|a| a.trim())
-                            .map(Author::new)
-                            .collect();
+    match pdf::file::File::<Vec<u8>>::open(file) {
+        Ok(pdf_file) => {
+            debug!(?file, "Loaded pdf file");
+            if let Some(info) = pdf_file.trailer.info_dict.as_ref() {
+                debug!(?file, ?info, "Found the info dict");
+                // try and extract the authors
+                if let Some(found_authors) = info.get("Author") {
+                    debug!(?file, ?found_authors, "Found authors");
+                    match found_authors.as_string().and_then(|ft| ft.as_str()) {
+                        Ok(found_authors) => {
+                            if !found_authors.is_empty() {
+                                debug!(?file, ?found_authors, "Setting auto authors");
+                                return found_authors
+                                    .split(|c: char| !c.is_alphanumeric() && !c.is_whitespace())
+                                    .map(|a| a.trim())
+                                    .map(Author::new)
+                                    .collect();
+                            } else {
+                                debug!("Authors was empty");
+                            }
+                        }
+                        Err(err) => {
+                            debug!(%err, ?found_authors, "Failed to get authors field as string");
+                        }
                     }
                 }
             }
+        }
+        Err(err) => {
+            debug!(%err, "Failed to open pdf file");
         }
     }
     warn!("Couldn't find authors in pdf metadata");
