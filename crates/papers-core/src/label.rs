@@ -8,6 +8,18 @@ pub struct Label {
     value: String,
 }
 
+impl PartialOrd for Label {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Label {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.key.cmp(&other.key)
+    }
+}
+
 impl Label {
     pub fn new(key: &str, value: &str) -> Self {
         let key = key.trim();

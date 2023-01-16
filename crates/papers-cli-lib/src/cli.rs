@@ -1,4 +1,5 @@
 use std::{
+    collections::BTreeSet,
     env::current_dir,
     fs::{remove_file, File},
     io::{stdout, Read, Write},
@@ -169,6 +170,9 @@ impl SubCommand {
                 tags,
                 labels,
             } => {
+                let authors = BTreeSet::from_iter(authors);
+                let tags = BTreeSet::from_iter(tags);
+                let labels = BTreeSet::from_iter(labels);
                 for url_or_path in url_or_path {
                     match url_or_path {
                         UrlOrPath::Url(url) => {
@@ -573,9 +577,9 @@ fn add<P: AsRef<Path>>(
     file: P,
     url: Option<String>,
     mut title: Option<String>,
-    mut authors: Vec<Author>,
-    tags: Vec<Tag>,
-    labels: Vec<Label>,
+    mut authors: BTreeSet<Author>,
+    tags: BTreeSet<Tag>,
+    labels: BTreeSet<Label>,
 ) -> anyhow::Result<()> {
     let file = file.as_ref();
     if !file.is_file() {
@@ -622,7 +626,7 @@ fn extract_title(file: &Path) -> Option<String> {
     None
 }
 
-fn extract_authors(file: &Path) -> Vec<Author> {
+fn extract_authors(file: &Path) -> BTreeSet<Author> {
     match pdf::file::File::<Vec<u8>>::open(file) {
         Ok(pdf_file) => {
             debug!(?file, "Loaded pdf file");
@@ -656,7 +660,7 @@ fn extract_authors(file: &Path) -> Vec<Author> {
         }
     }
     warn!("Couldn't find authors in pdf metadata");
-    Vec::new()
+    BTreeSet::new()
 }
 
 /// Output style for lists.

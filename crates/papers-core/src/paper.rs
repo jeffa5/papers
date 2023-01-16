@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use crate::{author::Author, label::Label, tag::Tag};
 use serde::Serialize;
 
@@ -7,9 +9,9 @@ pub struct Paper {
     pub url: Option<String>,
     pub filename: String,
     pub title: Option<String>,
-    pub tags: Vec<Tag>,
-    pub labels: Vec<Label>,
-    pub authors: Vec<Author>,
+    pub tags: BTreeSet<Tag>,
+    pub labels: BTreeSet<Label>,
+    pub authors: BTreeSet<Author>,
     pub notes: Option<String>,
     pub deleted: bool,
     pub created_at: chrono::NaiveDateTime,

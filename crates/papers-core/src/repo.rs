@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use std::fs::canonicalize;
 use std::path::{Path, PathBuf};
 
@@ -51,9 +52,9 @@ impl Repo {
         file: &P,
         url: Option<String>,
         title: Option<String>,
-        authors: Vec<Author>,
-        tags: Vec<Tag>,
-        labels: Vec<Label>,
+        authors: BTreeSet<Author>,
+        tags: BTreeSet<Tag>,
+        labels: BTreeSet<Label>,
     ) -> anyhow::Result<Paper> {
         let file = file.as_ref();
         if !canonicalize(file)
@@ -241,21 +242,21 @@ impl Repo {
             anyhow::bail!("Paper not found");
         }
 
-        let authors: Vec<_> = self
+        let authors: BTreeSet<_> = self
             .db
             .get_authors(paper_id)?
             .into_iter()
             .map(|a| Author::new(&a.author))
             .collect();
 
-        let tags: Vec<_> = self
+        let tags: BTreeSet<_> = self
             .db
             .get_tags(paper_id)?
             .into_iter()
             .map(|t| Tag::new(&t.tag))
             .collect();
 
-        let labels: Vec<_> = self
+        let labels: BTreeSet<_> = self
             .db
             .get_labels(paper_id)?
             .into_iter()
@@ -301,21 +302,21 @@ impl Repo {
                 continue;
             }
 
-            let authors: Vec<_> = self
+            let authors: BTreeSet<_> = self
                 .db
                 .get_authors(paper.id)?
                 .into_iter()
                 .map(|a| Author::new(&a.author))
                 .collect();
 
-            let tags: Vec<_> = self
+            let tags: BTreeSet<_> = self
                 .db
                 .get_tags(paper.id)?
                 .into_iter()
                 .map(|t| Tag::new(&t.tag))
                 .collect();
 
-            let labels: Vec<_> = self
+            let labels: BTreeSet<_> = self
                 .db
                 .get_labels(paper.id)?
                 .into_iter()
@@ -413,9 +414,9 @@ mod tests {
                 &path,
                 Some("blah".to_owned()),
                 Some("title".to_owned()),
-                vec![Author::new("a"), Author::new("b")],
-                vec![Tag::new("t1"), Tag::new("t2")],
-                vec![Label::new("k", "v")],
+                BTreeSet::from_iter(vec![Author::new("a"), Author::new("b")]),
+                BTreeSet::from_iter(vec![Tag::new("t1"), Tag::new("t2")]),
+                BTreeSet::from_iter(vec![Label::new("k", "v")]),
             )
             .unwrap();
         paper.created_at = created;
@@ -430,28 +431,28 @@ mod tests {
                 title: Some(
                     "title",
                 ),
-                tags: [
+                tags: {
                     Tag {
                         key: "t1",
                     },
                     Tag {
                         key: "t2",
                     },
-                ],
-                labels: [
+                },
+                labels: {
                     Label {
                         key: "k",
                         value: "v",
                     },
-                ],
-                authors: [
+                },
+                authors: {
                     Author {
                         author: "a",
                     },
                     Author {
                         author: "b",
                     },
-                ],
+                },
                 notes: None,
                 deleted: false,
                 created_at: 1970-01-01T00:00:00,
@@ -472,9 +473,9 @@ mod tests {
                 &path,
                 Some("blah".to_owned()),
                 Some("title".to_owned()),
-                vec![Author::new("a"), Author::new("b")],
-                vec![Tag::new("t1"), Tag::new("t2")],
-                vec![Label::new("k", "v")],
+                BTreeSet::from_iter(vec![Author::new("a"), Author::new("b")]),
+                BTreeSet::from_iter(vec![Tag::new("t1"), Tag::new("t2")]),
+                BTreeSet::from_iter(vec![Label::new("k", "v")]),
             )
             .unwrap();
         repo.remove(paper.id).unwrap();

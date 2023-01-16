@@ -8,6 +8,18 @@ pub struct Author {
     author: String,
 }
 
+impl PartialOrd for Author {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Author {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.author.cmp(&other.author)
+    }
+}
+
 impl Author {
     pub fn new(s: &str) -> Self {
         Self {

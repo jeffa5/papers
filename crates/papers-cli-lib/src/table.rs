@@ -1,4 +1,4 @@
-use std::{fmt::Display, time::Duration};
+use std::{collections::BTreeSet, fmt::Display, time::Duration};
 
 use papers_core::{author::Author, label::Label, paper::Paper, tag::Tag};
 use serde::Serialize;
@@ -15,11 +15,11 @@ pub struct TablePaper {
     /// Title of the document.
     pub title: Option<String>,
     /// Tags for this document.
-    pub tags: Vec<Tag>,
+    pub tags: BTreeSet<Tag>,
     /// Labels for this document.
-    pub labels: Vec<Label>,
+    pub labels: BTreeSet<Label>,
     /// Authors for this document.
-    pub authors: Vec<Author>,
+    pub authors: BTreeSet<Author>,
     /// Age since creation.
     pub age: Duration,
 }
