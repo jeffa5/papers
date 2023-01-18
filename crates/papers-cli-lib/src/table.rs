@@ -1,5 +1,6 @@
 use std::{collections::BTreeSet, fmt::Display, time::Duration};
 
+use comfy_table::Cell;
 use papers_core::{author::Author, label::Label, paper::Paper, tag::Tag};
 use serde::Serialize;
 
@@ -85,7 +86,9 @@ impl TablePaper {
 
         let columns = vec![id, title, authors, tags, labels, age];
 
-        comfy_table::Row::from(columns)
+        let mut row = comfy_table::Row::from(columns);
+        row.max_height(1);
+        row
     }
 }
 
@@ -125,6 +128,10 @@ impl Display for Table {
             .set_content_arrangement(comfy_table::ContentArrangement::Dynamic);
 
         tab.set_header(Self::header());
+
+        let authors_column = tab.column_mut(2).unwrap();
+        authors_column.set_delimiter(',');
+
         for paper in &self.papers {
             tab.add_row(paper.to_row());
         }
