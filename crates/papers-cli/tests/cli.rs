@@ -23,6 +23,7 @@ fn test_help() {
               notes        Manage notes associated with a paper
               open         Open the file for the given paper
               completions  Generate cli completion files
+              import       Import a list of tasks in json format
               help         Print this message or the help of the given subcommand(s)
 
             Options:

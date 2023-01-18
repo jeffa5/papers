@@ -22,6 +22,7 @@ pub struct NewPaper {
     pub url: Option<String>,
     pub filename: Option<String>,
     pub title: Option<String>,
+    pub created_at: Option<chrono::NaiveDateTime>,
     pub modified_at: chrono::NaiveDateTime,
 }
 

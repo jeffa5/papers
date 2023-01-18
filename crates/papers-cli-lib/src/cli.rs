@@ -2,7 +2,7 @@ use std::{
     collections::BTreeSet,
     env::current_dir,
     fs::{remove_file, File},
-    io::{stdout, Read, Write},
+    io::{stdin, stdout, Read, Write},
     path::{Path, PathBuf},
     process::Command,
 };
@@ -10,13 +10,13 @@ use std::{
 use clap::{CommandFactory, ValueEnum};
 use clap_complete::{generate_to, Generator, Shell};
 use gray_matter::{engine::YAML, Matter};
-use papers_core::{author::Author, repo::Repo, tag::Tag};
+use papers_core::{author::Author, paper::Paper, repo::Repo, tag::Tag};
 use tracing::{debug, info, warn};
 
 use papers_core::label::Label;
 
-use crate::ids::Ids;
 use crate::{config::Config, table::Table, url_path::UrlOrPath};
+use crate::{file_or_stdin::FileOrStdin, ids::Ids};
 
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
 
@@ -160,6 +160,14 @@ pub enum SubCommand {
         /// Directory to save completion files to.
         #[clap(default_value = ".")]
         dir: PathBuf,
+    },
+    /// Import a list of tasks in json format.
+    ///
+    /// The format can be exported from a `list` command using the `-o json` argument.
+    Import {
+        /// File to import from, or '-' for stdin.
+        #[clap()]
+        file: FileOrStdin,
     },
 }
 
@@ -446,6 +454,25 @@ impl SubCommand {
             Self::Completions { shell, dir } => {
                 let path = gen_completions(shell, &dir);
                 info!(?path, ?shell, "Generated completions");
+            }
+            Self::Import { file } => {
+                let papers = match file {
+                    FileOrStdin::File(path) => {
+                        let reader = File::open(path)?;
+                        let papers: Vec<Paper> = serde_json::from_reader(reader)?;
+                        papers
+                    }
+                    FileOrStdin::Stdin => {
+                        let reader = stdin();
+                        let papers: Vec<Paper> = serde_json::from_reader(reader)?;
+                        papers
+                    }
+                };
+                let mut repo = load_repo(config)?;
+                for paper in papers {
+                    let id = repo.import(paper)?;
+                    info!(id, "Added paper");
+                }
             }
         }
         Ok(())

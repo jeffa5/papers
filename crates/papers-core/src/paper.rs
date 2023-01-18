@@ -1,9 +1,9 @@
 use std::collections::BTreeSet;
 
 use crate::{author::Author, label::Label, tag::Tag};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Paper {
     pub id: i32,
     pub url: Option<String>,

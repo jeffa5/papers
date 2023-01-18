@@ -80,6 +80,7 @@ impl Repo {
             url,
             filename,
             title,
+            created_at: None,
             modified_at: now_naive(),
         };
         let paper = self.db.insert_paper(paper)?;
@@ -125,6 +126,58 @@ impl Repo {
             created_at: paper.created_at,
             modified_at: paper.modified_at,
         })
+    }
+
+    pub fn import(&mut self, paper: Paper) -> anyhow::Result<i32> {
+        let db_paper = db::NewPaper {
+            url: paper.url,
+            filename: paper.filename,
+            title: paper.title,
+            created_at: Some(paper.created_at),
+            modified_at: paper.modified_at,
+        };
+        let db_paper = self.db.insert_paper(db_paper)?;
+
+        let new_authors = paper
+            .authors
+            .iter()
+            .map(|t| db::NewAuthor {
+                paper_id: paper.id,
+                author: t.to_string(),
+            })
+            .collect();
+        self.db.insert_authors(new_authors)?;
+
+        let new_tags = paper
+            .tags
+            .iter()
+            .map(|t| db::NewTag {
+                paper_id: paper.id,
+                tag: t.to_string(),
+            })
+            .collect();
+        self.db.insert_tags(new_tags)?;
+
+        let new_labels = paper
+            .labels
+            .iter()
+            .map(|l| db::NewLabel {
+                paper_id: paper.id,
+                label_key: l.key().to_owned(),
+                label_value: l.value().to_owned(),
+            })
+            .collect();
+        self.db.insert_labels(new_labels)?;
+
+        if let Some(notes) = paper.notes {
+            let note = db::NewNote {
+                paper_id: db_paper.id,
+                content: notes,
+            };
+            self.db.insert_note(note)?;
+        }
+
+        Ok(db_paper.id)
     }
 
     pub fn update<P: AsRef<Path>>(
