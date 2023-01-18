@@ -142,7 +142,7 @@ impl Repo {
             .authors
             .iter()
             .map(|t| db::NewAuthor {
-                paper_id: paper.id,
+                paper_id: db_paper.id,
                 author: t.to_string(),
             })
             .collect();
@@ -152,7 +152,7 @@ impl Repo {
             .tags
             .iter()
             .map(|t| db::NewTag {
-                paper_id: paper.id,
+                paper_id: db_paper.id,
                 tag: t.to_string(),
             })
             .collect();
@@ -162,7 +162,7 @@ impl Repo {
             .labels
             .iter()
             .map(|l| db::NewLabel {
-                paper_id: paper.id,
+                paper_id: db_paper.id,
                 label_key: l.key().to_owned(),
                 label_value: l.value().to_owned(),
             })
@@ -175,6 +175,11 @@ impl Repo {
                 content: notes,
             };
             self.db.insert_note(note)?;
+        }
+
+        // delete it if it was in the old version.
+        if paper.deleted{
+            self.db.remove_paper(db_paper.id)?;
         }
 
         Ok(db_paper.id)
