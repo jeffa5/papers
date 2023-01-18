@@ -178,7 +178,7 @@ impl Repo {
         }
 
         // delete it if it was in the old version.
-        if paper.deleted{
+        if paper.deleted {
             self.db.remove_paper(db_paper.id)?;
         }
 
@@ -351,13 +351,14 @@ impl Repo {
         match_authors: Vec<Author>,
         match_tags: Vec<Tag>,
         match_labels: Vec<Label>,
+        include_deleted: bool,
     ) -> anyhow::Result<Vec<Paper>> {
         let db_papers = self.db.list_papers()?;
         let mut papers = Vec::new();
         let match_title = match_title.map(|t| t.to_lowercase());
         let match_file = match_file.map(|t| t.to_lowercase());
         for paper in db_papers {
-            if paper.deleted {
+            if !include_deleted && paper.deleted {
                 continue;
             }
 

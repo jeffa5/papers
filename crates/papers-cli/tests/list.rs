@@ -34,6 +34,9 @@ fn test_help() {
               -l, --label <label>
                       Filter down to papers that have all of the given labels. Labels take the form `key=value`
 
+                  --deleted
+                      Show papers that have been deleted too
+
               -o, --output <OUTPUT>
                       Output the filtered selection of papers in different formats
 

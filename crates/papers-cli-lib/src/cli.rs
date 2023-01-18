@@ -115,6 +115,7 @@ pub enum SubCommand {
         /// Paper ids to filter to, e.g. 1 1,2 1-3,5.
         #[clap()]
         ids: Option<Ids>,
+
         /// Filter down to papers that have filenames which match this (case-insensitive).
         #[clap(long, short)]
         file: Option<String>,
@@ -134,6 +135,10 @@ pub enum SubCommand {
         /// Filter down to papers that have all of the given labels. Labels take the form `key=value`.
         #[clap(name = "label", long, short)]
         labels: Vec<Label>,
+
+        /// Show papers that have been deleted too.
+        #[clap(long)]
+        deleted: bool,
 
         /// Output the filtered selection of papers in different formats.
         #[clap(long, short, value_enum, default_value_t)]
@@ -345,6 +350,7 @@ impl SubCommand {
                                 Vec::new(),
                                 Vec::new(),
                                 Vec::new(),
+                                false,
                             )?;
                             if papers_with_that_file.is_empty() {
                                 if let Some(filename) = &paper.filename {
@@ -385,6 +391,7 @@ impl SubCommand {
                 authors,
                 tags,
                 labels,
+                deleted,
                 output,
             } => {
                 let mut repo = load_repo(config)?;
@@ -395,6 +402,7 @@ impl SubCommand {
                     authors,
                     tags,
                     labels,
+                    deleted,
                 )?;
 
                 match output {
