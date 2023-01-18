@@ -26,6 +26,7 @@ fn main() -> anyhow::Result<()> {
         anyhow::bail!("Failed to make project dirs")
     };
     let mut config = Config::load(&config_file)?;
+    debug!(?config, ?config_file, "Loaded config file");
 
     // override config values from cli
     if let Some(db_filename) = options.db_filename {
@@ -35,7 +36,7 @@ fn main() -> anyhow::Result<()> {
         config.default_repo = default_repo;
     }
 
-    debug!(?config, ?config_file, "Loaded config file");
+    debug!(?config, "Merged config and options");
 
     options.cmd.execute(&config)?;
 
