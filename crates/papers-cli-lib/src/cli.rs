@@ -738,7 +738,11 @@ fn extract_authors(file: &Path) -> BTreeSet<Author> {
                             if !found_authors.is_empty() {
                                 debug!(?file, ?found_authors, "Setting auto authors");
                                 return found_authors
-                                    .split(|c: char| !c.is_alphanumeric() && !c.is_whitespace())
+                                    .split(|c: char| {
+                                        // names can have alphabet, whitespace or full stops e.g.
+                                        // First M. Last
+                                        !c.is_alphanumeric() && !c.is_whitespace() && c != '.'
+                                    })
                                     .map(|a| a.trim())
                                     .filter(|s| !s.is_empty())
                                     .map(Author::new)
