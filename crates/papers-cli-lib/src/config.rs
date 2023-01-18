@@ -2,6 +2,7 @@ use std::fs::File;
 use std::path::Path;
 use std::path::PathBuf;
 
+use directories::ProjectDirs;
 use serde::Deserialize;
 use serde::Serialize;
 use tracing::debug;
@@ -19,7 +20,8 @@ pub struct Config {
 }
 
 fn default_repo() -> PathBuf {
-    "~/.local/share/papers".into()
+    let dirs = ProjectDirs::from("io", "jeffas", "papers").unwrap();
+    dirs.data_dir().to_owned()
 }
 
 impl Config {

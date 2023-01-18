@@ -1,9 +1,9 @@
 use std::collections::BTreeSet;
-use std::fs::canonicalize;
+use std::fs::{canonicalize, create_dir_all};
 use std::path::{Path, PathBuf};
 
 use anyhow::Context;
-use tracing::trace;
+use tracing::{debug, trace};
 
 use crate::author::Author;
 use crate::db;
@@ -55,6 +55,10 @@ impl Repo {
     }
 
     pub fn init(root: &Path, db_file: &Path) -> anyhow::Result<Self> {
+        if !root.exists() {
+            debug!(?root, "Creating root directory first");
+            create_dir_all(root)?;
+        }
         let db = Db::init(root, db_file)?;
         Ok(Self {
             db,

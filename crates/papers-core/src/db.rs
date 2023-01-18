@@ -41,6 +41,7 @@ impl Db {
         let connection = SqliteConnection::establish(&file.to_string_lossy())?;
         let mut s = Self { connection };
         s.migrate()?;
+        debug!(?file, "Initialised database");
         Ok(s)
     }
 

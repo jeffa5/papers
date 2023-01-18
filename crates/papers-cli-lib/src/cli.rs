@@ -194,8 +194,8 @@ impl SubCommand {
     pub fn execute(self, config: &Config) -> anyhow::Result<()> {
         match self {
             Self::Init { dir } => {
-                let _ = Repo::init(&dir, &config.db_filename);
-                info!("Initialised the current directory");
+                Repo::init(&dir, &config.db_filename)?;
+                info!(?dir, "Initialised the directory");
             }
             Self::Add {
                 url_or_path,
