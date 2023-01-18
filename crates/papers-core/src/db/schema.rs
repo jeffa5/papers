@@ -27,7 +27,7 @@ diesel::table! {
     papers (id) {
         id -> Integer,
         url -> Nullable<Text>,
-        filename -> Text,
+        filename -> Nullable<Text>,
         title -> Nullable<Text>,
         deleted -> Bool,
         created_at -> Timestamp,

@@ -7,7 +7,7 @@ use serde::Serialize;
 pub struct Paper {
     pub id: i32,
     pub url: Option<String>,
-    pub filename: String,
+    pub filename: Option<String>,
     pub title: Option<String>,
     pub tags: BTreeSet<Tag>,
     pub labels: BTreeSet<Label>,

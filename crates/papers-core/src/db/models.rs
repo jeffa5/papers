@@ -9,7 +9,7 @@ use diesel::prelude::*;
 pub struct Paper {
     pub id: i32,
     pub url: Option<String>,
-    pub filename: String,
+    pub filename: Option<String>,
     pub title: Option<String>,
     pub deleted: bool,
     pub created_at: chrono::NaiveDateTime,
@@ -20,7 +20,7 @@ pub struct Paper {
 #[diesel(table_name = papers)]
 pub struct NewPaper {
     pub url: Option<String>,
-    pub filename: String,
+    pub filename: Option<String>,
     pub title: Option<String>,
     pub modified_at: chrono::NaiveDateTime,
 }

@@ -27,7 +27,13 @@ impl FromStr for UrlOrPath {
                     url
                 )),
             },
-            Err(_) => Ok(Self::Path(PathBuf::from(s))),
+            Err(_) => {
+                if s.is_empty() {
+                    Err("failed to use empty string as url or path".to_owned())
+                } else {
+                    Ok(Self::Path(PathBuf::from(s)))
+                }
+            }
         }
     }
 }

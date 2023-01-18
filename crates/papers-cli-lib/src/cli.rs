@@ -44,6 +44,10 @@ pub enum SubCommand {
         #[clap()]
         url_or_path: Vec<UrlOrPath>,
 
+        /// Title of the file.
+        #[clap(long)]
+        title: Option<String>,
+
         /// Authors to associate with these files.
         #[clap(name = "author", long, short)]
         authors: Vec<Author>,
@@ -166,6 +170,7 @@ impl SubCommand {
             }
             Self::Add {
                 url_or_path,
+                title,
                 authors,
                 tags,
                 labels,
@@ -173,6 +178,21 @@ impl SubCommand {
                 let authors = BTreeSet::from_iter(authors);
                 let tags = BTreeSet::from_iter(tags);
                 let labels = BTreeSet::from_iter(labels);
+                if url_or_path.is_empty() {
+                    match add::<&Path>(
+                        None,
+                        None,
+                        title.clone(),
+                        authors.clone(),
+                        tags.clone(),
+                        labels.clone(),
+                    ) {
+                        Ok(_) => {}
+                        Err(err) => {
+                            warn!(%err, "Failed to add paper");
+                        }
+                    };
+                }
                 for url_or_path in url_or_path {
                     match url_or_path {
                         UrlOrPath::Url(url) => {
@@ -230,9 +250,9 @@ impl SubCommand {
                             };
                             info!(%url, filename, "Fetched");
                             match add(
-                                &filename,
+                                Some(&filename),
                                 Some(url.to_string()),
-                                None,
+                                title.clone(),
                                 authors.clone(),
                                 tags.clone(),
                                 labels.clone(),
@@ -246,9 +266,9 @@ impl SubCommand {
                         }
                         UrlOrPath::Path(path) => {
                             match add(
-                                &path,
+                                Some(&path),
                                 None,
-                                None,
+                                title.clone(),
                                 authors.clone(),
                                 tags.clone(),
                                 labels.clone(),
@@ -304,16 +324,18 @@ impl SubCommand {
                             // check that the file isn't needed by another paper
                             let papers_with_that_file = repo.list(
                                 Vec::new(),
-                                Some(paper.filename.clone()),
+                                paper.filename.clone(),
                                 None,
                                 Vec::new(),
                                 Vec::new(),
                                 Vec::new(),
                             )?;
                             if papers_with_that_file.is_empty() {
-                                debug!(file = paper.filename, "Removing file");
-                                remove_file(&paper.filename)?;
-                                info!(file = paper.filename, "Removed file");
+                                if let Some(filename) = &paper.filename {
+                                    debug!(file = filename, "Removing file");
+                                    remove_file(filename)?;
+                                    info!(file = filename, "Removed file");
+                                }
                             } else {
                                 let papers_with_that_file = papers_with_that_file
                                     .iter()
@@ -406,8 +428,12 @@ impl SubCommand {
             Self::Open { paper_id } => {
                 let mut repo = load_repo()?;
                 let paper = repo.get_paper(paper_id)?;
-                info!(file = paper.filename, "Opening");
-                open::that(paper.filename)?;
+                if let Some(filename) = &paper.filename {
+                    info!(file = paper.filename, "Opening");
+                    open::that(filename)?;
+                } else {
+                    info!("No file associated with that paper");
+                }
             }
             Self::Completions { shell, dir } => {
                 let path = gen_completions(shell, &dir);
@@ -581,29 +607,31 @@ impl LabelsCommands {
 }
 
 fn add<P: AsRef<Path>>(
-    file: P,
+    file: Option<P>,
     url: Option<String>,
     mut title: Option<String>,
     mut authors: BTreeSet<Author>,
     tags: BTreeSet<Tag>,
     labels: BTreeSet<Label>,
 ) -> anyhow::Result<()> {
-    let file = file.as_ref();
-    if !file.is_file() {
-        anyhow::bail!("Path was not a file: {:?}", file);
+    if let Some(file) = file.as_ref() {
+        let file = file.as_ref();
+        if !file.is_file() {
+            anyhow::bail!("Path was not a file: {:?}", file);
+        }
+
+        if title.is_none() {
+            title = extract_title(file);
+        }
+
+        if authors.is_empty() {
+            authors = extract_authors(file);
+        }
     }
 
     let mut repo = load_repo()?;
 
-    if title.is_none() {
-        title = extract_title(file);
-    }
-
-    if authors.is_empty() {
-        authors = extract_authors(file);
-    }
-
-    let paper = repo.add(&file, url, title, authors, tags, labels)?;
+    let paper = repo.add(file, url, title, authors, tags, labels)?;
     info!(id = paper.id, filename = paper.filename, "Added paper");
 
     Ok(())

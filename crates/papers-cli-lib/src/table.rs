@@ -11,7 +11,7 @@ pub struct TablePaper {
     /// Url the paper was fetched from.
     pub url: Option<String>,
     /// Local filename of the document.
-    pub filename: String,
+    pub filename: Option<String>,
     /// Title of the document.
     pub title: Option<String>,
     /// Tags for this document.

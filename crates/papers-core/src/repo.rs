@@ -47,33 +47,38 @@ impl Repo {
         })
     }
 
-    pub fn add<P: AsRef<Path> + ?Sized>(
+    pub fn add<P: AsRef<Path>>(
         &mut self,
-        file: &P,
+        file: Option<P>,
         url: Option<String>,
         title: Option<String>,
         authors: BTreeSet<Author>,
         tags: BTreeSet<Tag>,
         labels: BTreeSet<Label>,
     ) -> anyhow::Result<Paper> {
-        let file = file.as_ref();
-        if !canonicalize(file)
-            .context("canonicalising the filename")?
-            .parent()
-            .unwrap()
-            .starts_with(&self.root)
-        {
-            anyhow::bail!(
-                "File doesn't live in the root {}",
-                self.root.to_string_lossy()
-            )
-        }
+        let filename = if let Some(file) = file {
+            let file = file.as_ref();
+            if !canonicalize(file)
+                .context("canonicalising the filename")?
+                .parent()
+                .unwrap()
+                .starts_with(&self.root)
+            {
+                anyhow::bail!(
+                    "File doesn't live in the root {}",
+                    self.root.to_string_lossy()
+                )
+            }
 
-        let file = file.file_name().unwrap();
+            let file = file.file_name().unwrap();
+            Some(file.to_string_lossy().into_owned())
+        } else {
+            None
+        };
 
         let paper = db::NewPaper {
             url,
-            filename: file.to_string_lossy().into_owned(),
+            filename,
             title,
             modified_at: now_naive(),
         };
@@ -326,7 +331,11 @@ impl Repo {
             let notes = self.db.get_note(paper.id).map(|n| n.content).ok();
 
             if let Some(match_file) = match_file.as_ref() {
-                if !paper.filename.to_lowercase().contains(match_file) {
+                if let Some(filename) = paper.filename.as_ref() {
+                    if !filename.to_lowercase().contains(match_file) {
+                        continue;
+                    }
+                } else {
                     continue;
                 }
             }
@@ -411,7 +420,7 @@ mod tests {
         let created = NaiveDateTime::default();
         let mut paper = repo
             .add(
-                &path,
+                Some(&path),
                 Some("blah".to_owned()),
                 Some("title".to_owned()),
                 BTreeSet::from_iter(vec![Author::new("a"), Author::new("b")]),
@@ -470,7 +479,7 @@ mod tests {
         File::create(&path).unwrap();
         let paper = repo
             .add(
-                &path,
+                Some(&path),
                 Some("blah".to_owned()),
                 Some("title".to_owned()),
                 BTreeSet::from_iter(vec![Author::new("a"), Author::new("b")]),
