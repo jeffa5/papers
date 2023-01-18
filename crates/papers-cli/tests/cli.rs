@@ -27,9 +27,10 @@ fn test_help() {
               help         Print this message or the help of the given subcommand(s)
 
             Options:
-              -c, --config-file <CONFIG_FILE>  Config file path to load
-                  --db-filename <DB_FILENAME>  Filename for the database
-              -h, --help                       Print help information"#]],
+              -c, --config-file <CONFIG_FILE>    Config file path to load
+                  --default-repo <DEFAULT_REPO>  Default repo to use if not found in parents of current directory
+                  --db-filename <DB_FILENAME>    Filename for the database
+              -h, --help                         Print help information"#]],
         expect![""],
     );
 }

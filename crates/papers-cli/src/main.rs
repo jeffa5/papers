@@ -31,6 +31,9 @@ fn main() -> anyhow::Result<()> {
     if let Some(db_filename) = options.db_filename {
         config.db_filename = db_filename;
     }
+    if let Some(default_repo) = options.default_repo {
+        config.default_repo = default_repo;
+    }
 
     debug!(?config, ?config_file, "Loaded config file");
 

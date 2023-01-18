@@ -19,14 +19,17 @@ fn test_help() {
               -f, --file <FILE>
                       Filter down to papers that have filenames which match this (case-insensitive)
 
-                  --db-filename <DB_FILENAME>
-                      Filename for the database
+                  --default-repo <DEFAULT_REPO>
+                      Default repo to use if not found in parents of current directory
 
                   --title <TITLE>
                       Filter down to papers whose titles match this (case-insensitive)
 
               -a, --author <author>
                       Filter down to papers that have all of the given authors
+
+                  --db-filename <DB_FILENAME>
+                      Filename for the database
 
               -t, --tag <tag>
                       Filter down to papers that have all of the given tags

@@ -10,7 +10,12 @@ use std::{
 use clap::{CommandFactory, ValueEnum};
 use clap_complete::{generate_to, Generator, Shell};
 use gray_matter::{engine::YAML, Matter};
-use papers_core::{author::Author, paper::Paper, repo::Repo, tag::Tag};
+use papers_core::{
+    author::Author,
+    paper::Paper,
+    repo::{self, Repo},
+    tag::Tag,
+};
 use tracing::{debug, info, warn};
 
 use papers_core::label::Label;
@@ -27,6 +32,10 @@ pub struct Cli {
     #[clap(long, short)]
     pub config_file: Option<PathBuf>,
 
+    /// Default repo to use if not found in parents of current directory.
+    #[clap(long, global = true)]
+    pub default_repo: Option<PathBuf>,
+
     /// Filename for the database.
     #[clap(long, global = true)]
     pub db_filename: Option<PathBuf>,
@@ -40,7 +49,11 @@ pub struct Cli {
 #[derive(Debug, clap::Subcommand)]
 pub enum SubCommand {
     /// Initialise a new paper repository.
-    Init {},
+    Init {
+        /// Directory to initialise.
+        #[clap(default_value = ".")]
+        dir: PathBuf,
+    },
     // TODO: interactive fetch and add
     /// Add paper documents from a url or local file.
     Add {
@@ -180,9 +193,8 @@ impl SubCommand {
     /// Execute a subcommand.
     pub fn execute(self, config: &Config) -> anyhow::Result<()> {
         match self {
-            Self::Init {} => {
-                let cwd = current_dir()?;
-                let _ = Repo::init(&cwd, &config.db_filename);
+            Self::Init { dir } => {
+                let _ = Repo::init(&dir, &config.db_filename);
                 info!("Initialised the current directory");
             }
             Self::Add {
@@ -489,7 +501,14 @@ impl SubCommand {
 
 fn load_repo(config: &Config) -> anyhow::Result<Repo> {
     let cwd = current_dir()?;
-    let repo = Repo::load(&cwd, &config.db_filename)?;
+    let repo_dir = if let Ok(repo_dir) = repo::find_root(&cwd, &config.db_filename) {
+        debug!(?repo_dir, "Found repo dir from searching.");
+        repo_dir
+    } else {
+        debug!(repo_dir=?config.default_repo, "Did not find repo dir from searching, using default repo.");
+        config.default_repo.to_owned()
+    };
+    let repo = Repo::load(&repo_dir, &config.db_filename)?;
     Ok(repo)
 }
 

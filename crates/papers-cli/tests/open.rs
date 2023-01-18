@@ -15,8 +15,9 @@ fn test_help() {
               <PAPER_ID>  Id of the paper to open
 
             Options:
-                  --db-filename <DB_FILENAME>  Filename for the database
-              -h, --help                       Print help information"#]],
+                  --default-repo <DEFAULT_REPO>  Default repo to use if not found in parents of current directory
+                  --db-filename <DB_FILENAME>    Filename for the database
+              -h, --help                         Print help information"#]],
         expect![""],
     );
 }

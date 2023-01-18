@@ -17,8 +17,9 @@ fn test_help() {
               help    Print this message or the help of the given subcommand(s)
 
             Options:
-                  --db-filename <DB_FILENAME>  Filename for the database
-              -h, --help                       Print help information"#]],
+                  --default-repo <DEFAULT_REPO>  Default repo to use if not found in parents of current directory
+                  --db-filename <DB_FILENAME>    Filename for the database
+              -h, --help                         Print help information"#]],
         expect![""],
     );
 }

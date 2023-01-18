@@ -3,6 +3,7 @@ use std::fs::canonicalize;
 use std::path::{Path, PathBuf};
 
 use anyhow::Context;
+use tracing::trace;
 
 use crate::author::Author;
 use crate::db;
@@ -14,6 +15,24 @@ fn now_naive() -> chrono::NaiveDateTime {
     let n = chrono::Utc::now().naive_utc();
     let millis = n.timestamp();
     chrono::NaiveDateTime::from_timestamp_opt(millis, 0).unwrap()
+}
+
+/// Try to find a root by looking for the db file in the given dir and parents.
+pub fn find_root(search_dir: &Path, db_file: &Path) -> anyhow::Result<PathBuf> {
+    for ancestor in search_dir.ancestors() {
+        trace!(?ancestor, "Searching for root");
+        if ancestor.is_dir() {
+            let db_path = ancestor.join(db_file);
+            if db_path.is_file() {
+                // found it
+                return Ok(ancestor.to_owned());
+            }
+        }
+    }
+    Err(anyhow::anyhow!(
+        "No db file found searching from {:?}",
+        search_dir
+    ))
 }
 
 pub struct Repo {
