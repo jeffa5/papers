@@ -21,7 +21,7 @@ fn main() -> anyhow::Result<()> {
     let config_file = if let Some(config_file) = options.config_file.as_ref() {
         config_file.clone()
     } else if let Some(dirs) = ProjectDirs::from("io", "jeffas", "papers") {
-        dirs.config_dir().to_owned()
+        dirs.config_dir().to_owned().join("config.yaml")
     } else {
         anyhow::bail!("Failed to make project dirs")
     };

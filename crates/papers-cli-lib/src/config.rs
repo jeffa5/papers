@@ -4,6 +4,7 @@ use std::path::PathBuf;
 
 use serde::Deserialize;
 use serde::Serialize;
+use tracing::debug;
 
 /// The config to be loaded.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -25,6 +26,7 @@ impl Config {
     /// Load the config from a file, if it exists.
     /// Returns a default config if the file doesn't exist.
     pub fn load(filename: &Path) -> anyhow::Result<Self> {
+        debug!(?filename, "Trying to load config");
         let config = if let Ok(file) = File::open(filename) {
             serde_yaml::from_reader(file)?
         } else {
