@@ -31,16 +31,16 @@ impl Repo {
         })
     }
 
-    pub fn init(root: &Path) -> anyhow::Result<Self> {
-        let db = Db::init(root)?;
+    pub fn init(root: &Path, db_file: &Path) -> anyhow::Result<Self> {
+        let db = Db::init(root, db_file)?;
         Ok(Self {
             db,
             root: canonicalize(root)?,
         })
     }
 
-    pub fn load(root: &Path) -> anyhow::Result<Self> {
-        let db = Db::load(root)?;
+    pub fn load(root: &Path, db_file: &Path) -> anyhow::Result<Self> {
+        let db = Db::load(root, db_file)?;
         Ok(Self {
             db,
             root: canonicalize(root)?,
@@ -436,7 +436,9 @@ mod tests {
                 url: Some(
                     "blah",
                 ),
-                filename: "file",
+                filename: Some(
+                    "file",
+                ),
                 title: Some(
                     "title",
                 ),

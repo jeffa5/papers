@@ -25,7 +25,12 @@ fn main() -> anyhow::Result<()> {
     } else {
         anyhow::bail!("Failed to make project dirs")
     };
-    let config = Config::load(&config_file)?;
+    let mut config = Config::load(&config_file)?;
+
+    // override config values from cli
+    if let Some(db_filename) = options.db_filename {
+        config.db_filename = db_filename;
+    }
 
     debug!(?config, ?config_file, "Loaded config file");
 

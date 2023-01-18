@@ -27,6 +27,10 @@ pub struct Cli {
     #[clap(long, short)]
     pub config_file: Option<PathBuf>,
 
+    /// Filename for the database.
+    #[clap(long, global = true)]
+    pub db_filename: Option<PathBuf>,
+
     /// Commands.
     #[clap(subcommand)]
     pub cmd: SubCommand,
@@ -161,11 +165,11 @@ pub enum SubCommand {
 
 impl SubCommand {
     /// Execute a subcommand.
-    pub fn execute(self, _config: &Config) -> anyhow::Result<()> {
+    pub fn execute(self, config: &Config) -> anyhow::Result<()> {
         match self {
             Self::Init {} => {
                 let cwd = current_dir()?;
-                let _ = Repo::init(&cwd);
+                let _ = Repo::init(&cwd, &config.db_filename);
                 info!("Initialised the current directory");
             }
             Self::Add {
@@ -178,8 +182,10 @@ impl SubCommand {
                 let authors = BTreeSet::from_iter(authors);
                 let tags = BTreeSet::from_iter(tags);
                 let labels = BTreeSet::from_iter(labels);
+                let mut repo = load_repo(config)?;
                 if url_or_path.is_empty() {
                     match add::<&Path>(
+                        &mut repo,
                         None,
                         None,
                         title.clone(),
@@ -250,6 +256,7 @@ impl SubCommand {
                             };
                             info!(%url, filename, "Fetched");
                             match add(
+                                &mut repo,
                                 Some(&filename),
                                 Some(url.to_string()),
                                 title.clone(),
@@ -266,6 +273,7 @@ impl SubCommand {
                         }
                         UrlOrPath::Path(path) => {
                             match add(
+                                &mut repo,
                                 Some(&path),
                                 None,
                                 title.clone(),
@@ -289,7 +297,7 @@ impl SubCommand {
                 file,
                 title,
             } => {
-                let mut repo = load_repo()?;
+                let mut repo = load_repo(config)?;
                 let url = if let Some(s) = url {
                     if s.is_empty() {
                         Some(None)
@@ -314,7 +322,7 @@ impl SubCommand {
                 }
             }
             Self::Remove { ids, with_file } => {
-                let mut repo = load_repo()?;
+                let mut repo = load_repo(config)?;
                 for id in ids.0 {
                     if let Ok(paper) = repo.get_paper(id) {
                         debug!(id, file = paper.filename, "Removing paper");
@@ -354,13 +362,13 @@ impl SubCommand {
                 }
             }
             Self::Authors { subcommand } => {
-                subcommand.execute()?;
+                subcommand.execute(config)?;
             }
             Self::Tags { subcommand } => {
-                subcommand.execute()?;
+                subcommand.execute(config)?;
             }
             Self::Labels { subcommand } => {
-                subcommand.execute()?;
+                subcommand.execute(config)?;
             }
             Self::List {
                 ids,
@@ -371,7 +379,7 @@ impl SubCommand {
                 labels,
                 output,
             } => {
-                let mut repo = load_repo()?;
+                let mut repo = load_repo(config)?;
                 let papers = repo.list(
                     ids.unwrap_or_default().0,
                     file,
@@ -395,7 +403,7 @@ impl SubCommand {
                 }
             }
             Self::Notes { paper_id } => {
-                let mut repo = load_repo()?;
+                let mut repo = load_repo(config)?;
                 let mut note = repo.get_note(paper_id)?;
 
                 let paper = repo.get_paper(paper_id)?;
@@ -426,7 +434,7 @@ impl SubCommand {
                 repo.update_note(note)?;
             }
             Self::Open { paper_id } => {
-                let mut repo = load_repo()?;
+                let mut repo = load_repo(config)?;
                 let paper = repo.get_paper(paper_id)?;
                 if let Some(filename) = &paper.filename {
                     info!(file = paper.filename, "Opening");
@@ -444,9 +452,9 @@ impl SubCommand {
     }
 }
 
-fn load_repo() -> anyhow::Result<Repo> {
+fn load_repo(config: &Config) -> anyhow::Result<Repo> {
     let cwd = current_dir()?;
-    let repo = Repo::load(&cwd)?;
+    let repo = Repo::load(&cwd, &config.db_filename)?;
     Ok(repo)
 }
 
@@ -483,10 +491,10 @@ pub enum AuthorsCommands {
 
 impl AuthorsCommands {
     /// Execute authors commands.
-    pub fn execute(self) -> anyhow::Result<()> {
+    pub fn execute(self, config: &Config) -> anyhow::Result<()> {
         match self {
             Self::Add { ids, authors } => {
-                let mut repo = load_repo()?;
+                let mut repo = load_repo(config)?;
                 for id in ids.0 {
                     if let Err(err) = repo.add_authors(id, authors.clone()) {
                         warn!(id, %err, "Failed to add authors");
@@ -494,7 +502,7 @@ impl AuthorsCommands {
                 }
             }
             Self::Remove { ids, authors } => {
-                let mut repo = load_repo()?;
+                let mut repo = load_repo(config)?;
                 for id in ids.0 {
                     if let Err(err) = repo.remove_authors(id, authors.clone()) {
                         warn!(id, %err, "Failed to remove authors");
@@ -533,10 +541,10 @@ pub enum TagsCommands {
 
 impl TagsCommands {
     /// Execute tags commands.
-    pub fn execute(self) -> anyhow::Result<()> {
+    pub fn execute(self, config: &Config) -> anyhow::Result<()> {
         match self {
             Self::Add { ids, tags } => {
-                let mut repo = load_repo()?;
+                let mut repo = load_repo(config)?;
                 for id in ids.0 {
                     if let Err(err) = repo.add_tags(id, tags.clone()) {
                         warn!(id, %err, "Failed to add tags");
@@ -544,7 +552,7 @@ impl TagsCommands {
                 }
             }
             Self::Remove { ids, tags } => {
-                let mut repo = load_repo()?;
+                let mut repo = load_repo(config)?;
                 for id in ids.0 {
                     if let Err(err) = repo.remove_tags(id, tags.clone()) {
                         warn!(id, %err, "Failed to remove tags");
@@ -583,10 +591,10 @@ pub enum LabelsCommands {
 
 impl LabelsCommands {
     /// Execute label commands.
-    pub fn execute(self) -> anyhow::Result<()> {
+    pub fn execute(self, config: &Config) -> anyhow::Result<()> {
         match self {
             Self::Add { ids, labels } => {
-                let mut repo = load_repo()?;
+                let mut repo = load_repo(config)?;
                 for id in ids.0 {
                     if let Err(err) = repo.add_labels(id, labels.clone()) {
                         warn!(id, %err, "Failed to add labels");
@@ -594,7 +602,7 @@ impl LabelsCommands {
                 }
             }
             Self::Remove { ids, labels } => {
-                let mut repo = load_repo()?;
+                let mut repo = load_repo(config)?;
                 for id in ids.0 {
                     if let Err(err) = repo.remove_labels(id, labels.clone()) {
                         warn!(id, %err, "Failed to remove labels");
@@ -607,6 +615,7 @@ impl LabelsCommands {
 }
 
 fn add<P: AsRef<Path>>(
+    repo: &mut Repo,
     file: Option<P>,
     url: Option<String>,
     mut title: Option<String>,
@@ -628,8 +637,6 @@ fn add<P: AsRef<Path>>(
             authors = extract_authors(file);
         }
     }
-
-    let mut repo = load_repo()?;
 
     let paper = repo.add(file, url, title, authors, tags, labels)?;
     info!(id = paper.id, filename = paper.filename, "Added paper");

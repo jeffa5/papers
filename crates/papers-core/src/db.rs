@@ -12,16 +12,14 @@ mod schema;
 
 pub use models::*;
 
-const DB_FILE_NAME: &str = "papers.db";
+pub fn default_filename() -> PathBuf {
+    "papers.db".into()
+}
 
 const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 
 pub struct Db {
     connection: SqliteConnection,
-}
-
-fn db_filename(dir: &Path) -> PathBuf {
-    dir.join(DB_FILE_NAME)
 }
 
 impl Db {
@@ -33,8 +31,8 @@ impl Db {
         Ok(s)
     }
 
-    pub fn init(dir: &Path) -> anyhow::Result<Self> {
-        let file = db_filename(dir);
+    pub fn init(dir: &Path, file: &Path) -> anyhow::Result<Self> {
+        let file = dir.join(file);
         if file.is_file() {
             warn!(?file, "DB file already exists, can't init");
             anyhow::bail!("Can't initialise, already a repo");
@@ -46,8 +44,8 @@ impl Db {
         Ok(s)
     }
 
-    pub fn load(dir: &Path) -> anyhow::Result<Self> {
-        let file = db_filename(dir);
+    pub fn load(dir: &Path, file: &Path) -> anyhow::Result<Self> {
+        let file = dir.join(file);
         if !file.is_file() {
             warn!(?file, "DB file doesn't exist, not initialised yet");
             anyhow::bail!("Not a repo, run `init` first");

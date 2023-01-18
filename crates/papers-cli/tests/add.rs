@@ -15,10 +15,12 @@ fn test_help() {
               [URL_OR_PATH]...  List of Urls to fetch from or paths of local files in the repo
 
             Options:
-              -a, --author <author>  Authors to associate with these files
-              -t, --tag <tag>        Tags to associate with these files
-              -l, --label <label>    Labels to associate with these files. Labels take the form `key=value`
-              -h, --help             Print help information"#]],
+                  --title <TITLE>              Title of the file
+              -a, --author <author>            Authors to associate with these files
+                  --db-filename <DB_FILENAME>  Filename for the database
+              -t, --tag <tag>                  Tags to associate with these files
+              -l, --label <label>              Labels to associate with these files. Labels take the form `key=value`
+              -h, --help                       Print help information"#]],
         expect![""],
     );
 }

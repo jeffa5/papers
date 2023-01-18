@@ -9,7 +9,7 @@ fn test_help() {
         expect![[r#"
             Manage tags associated with a paper
 
-            Usage: papers tags <COMMAND>
+            Usage: papers tags [OPTIONS] <COMMAND>
 
             Commands:
               add     Add tags to papers
@@ -17,7 +17,8 @@ fn test_help() {
               help    Print this message or the help of the given subcommand(s)
 
             Options:
-              -h, --help  Print help information"#]],
+                  --db-filename <DB_FILENAME>  Filename for the database
+              -h, --help                       Print help information"#]],
         expect![""],
     );
 }

@@ -27,6 +27,7 @@ fn test_help() {
 
             Options:
               -c, --config-file <CONFIG_FILE>  Config file path to load
+                  --db-filename <DB_FILENAME>  Filename for the database
               -h, --help                       Print help information"#]],
         expect![""],
     );

@@ -16,10 +16,11 @@ fn test_help() {
               <IDS>  Ids of papers to update, e.g. 1 1,2 1-3,5
 
             Options:
-              -u, --url <URL>      Url the paper was fetched from
-              -f, --file <FILE>    File to add
-                  --title <TITLE>  Title of the file
-              -h, --help           Print help information"#]],
+              -u, --url <URL>                  Url the paper was fetched from
+                  --db-filename <DB_FILENAME>  Filename for the database
+              -f, --file <FILE>                File to add
+                  --title <TITLE>              Title of the file
+              -h, --help                       Print help information"#]],
         expect![""],
     );
 }

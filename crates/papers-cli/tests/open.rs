@@ -9,13 +9,14 @@ fn test_help() {
         expect![[r#"
             Open the file for the given paper
 
-            Usage: papers open <PAPER_ID>
+            Usage: papers open [OPTIONS] <PAPER_ID>
 
             Arguments:
               <PAPER_ID>  Id of the paper to open
 
             Options:
-              -h, --help  Print help information"#]],
+                  --db-filename <DB_FILENAME>  Filename for the database
+              -h, --help                       Print help information"#]],
         expect![""],
     );
 }

@@ -9,10 +9,11 @@ fn test_help() {
         expect![[r#"
             Initialise a new paper repository
 
-            Usage: papers init
+            Usage: papers init [OPTIONS]
 
             Options:
-              -h, --help  Print help information"#]],
+                  --db-filename <DB_FILENAME>  Filename for the database
+              -h, --help                       Print help information"#]],
         expect![""],
     );
 }

@@ -15,8 +15,9 @@ fn test_help() {
               <IDS>  Ids of papers to remove, e.g. 1 1,2 1-3,5
 
             Options:
-                  --with-file  Also remove the paper file
-              -h, --help       Print help information"#]],
+                  --with-file                  Also remove the paper file
+                  --db-filename <DB_FILENAME>  Filename for the database
+              -h, --help                       Print help information"#]],
         expect![[""]],
     );
 }

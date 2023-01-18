@@ -19,6 +19,9 @@ fn test_help() {
               -f, --file <FILE>
                       Filter down to papers that have filenames which match this (case-insensitive)
 
+                  --db-filename <DB_FILENAME>
+                      Filename for the database
+
                   --title <TITLE>
                       Filter down to papers whose titles match this (case-insensitive)
 
