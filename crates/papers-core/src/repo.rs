@@ -41,6 +41,10 @@ pub struct Repo {
 }
 
 impl Repo {
+    pub fn root(&self) -> &Path {
+        &self.root
+    }
+
     #[cfg(test)]
     pub fn in_memory(root: &Path) -> anyhow::Result<Self> {
         let db = Db::in_memory()?;

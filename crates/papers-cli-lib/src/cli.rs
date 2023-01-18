@@ -463,10 +463,12 @@ impl SubCommand {
             }
             Self::Open { paper_id } => {
                 let mut repo = load_repo(config)?;
+                let root = repo.root().to_owned();
                 let paper = repo.get_paper(paper_id)?;
                 if let Some(filename) = &paper.filename {
-                    info!(file = paper.filename, "Opening");
-                    open::that(filename)?;
+                    let path = root.join(filename);
+                    info!(?path, "Opening");
+                    open::that(path)?;
                 } else {
                     info!("No file associated with that paper");
                 }
