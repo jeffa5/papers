@@ -17,3 +17,6 @@ pub mod file_or_stdin;
 
 /// Type for displaying papers in a table.
 pub mod table;
+
+/// Collection of error reporting utils.
+pub mod err;

@@ -1,10 +1,11 @@
 mod common;
-use common::check_ok;
+use common::Fixture;
 use expect_test::expect;
 
 #[test]
 fn test_help() {
-    check_ok(
+    let mut f = Fixture::new();
+    f.check_ok(
         "list --help",
         expect![[r#"
             List the papers stored with this repo
@@ -16,6 +17,9 @@ fn test_help() {
                       Paper ids to filter to, e.g. 1 1,2 1-3,5
 
             Options:
+              -c, --config-file <CONFIG_FILE>
+                      Config file path to load
+
               -f, --file <FILE>
                       Filter down to papers that have filenames which match this (case-insensitive)
 

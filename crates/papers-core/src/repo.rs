@@ -85,19 +85,10 @@ impl Repo {
     ) -> anyhow::Result<Paper> {
         let filename = if let Some(file) = file {
             let file = file.as_ref();
-            if !canonicalize(file)
-                .context("canonicalising the filename")?
-                .parent()
-                .unwrap()
-                .starts_with(&self.root)
-            {
-                anyhow::bail!(
-                    "File doesn't live in the root {}",
-                    self.root.to_string_lossy()
-                )
-            }
-
-            let file = file.file_name().unwrap();
+            let file = canonicalize(file).context("canonicalising the filename")?;
+            let file = file
+                .strip_prefix(&self.root)
+                .context("File does not live in the root")?;
             Some(file.to_string_lossy().into_owned())
         } else {
             None

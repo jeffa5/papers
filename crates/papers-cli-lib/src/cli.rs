@@ -20,6 +20,7 @@ use tracing::{debug, info, warn};
 
 use papers_core::label::Label;
 
+use crate::error;
 use crate::{config::Config, table::Table, url_path::UrlOrPath};
 use crate::{file_or_stdin::FileOrStdin, ids::Ids};
 
@@ -29,7 +30,7 @@ static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_P
 #[derive(Debug, clap::Parser)]
 pub struct Cli {
     /// Config file path to load.
-    #[clap(long, short)]
+    #[clap(long, short, global = true)]
     pub config_file: Option<PathBuf>,
 
     /// Default repo to use if not found in parents of current directory.
@@ -218,7 +219,9 @@ impl SubCommand {
                         tags.clone(),
                         labels.clone(),
                     ) {
-                        Ok(_) => {}
+                        Ok(paper) => {
+                            println!("Added paper {}", paper.id);
+                        }
                         Err(err) => {
                             warn!(%err, "Failed to add paper");
                         }
@@ -289,12 +292,15 @@ impl SubCommand {
                                 tags.clone(),
                                 labels.clone(),
                             ) {
-                                Ok(_) => {}
+                                Ok(paper) => {
+                                    println!("Added paper {} from {}", paper.id, url);
+                                }
                                 Err(err) => {
                                     warn!(%err, %url, filename,"Failed to add paper");
+                                    error!("Failed to add paper from URL {}: {}", url, err);
                                     continue;
                                 }
-                            };
+                            }
                         }
                         UrlOrPath::Path(path) => {
                             match add(
@@ -306,12 +312,19 @@ impl SubCommand {
                                 tags.clone(),
                                 labels.clone(),
                             ) {
-                                Ok(_) => {}
+                                Ok(paper) => {
+                                    println!(
+                                        "Added paper {} from {}",
+                                        paper.id,
+                                        path.to_string_lossy()
+                                    );
+                                }
                                 Err(err) => {
-                                    warn!(%err, ?path,"Failed to add paper");
+                                    warn!(%err, ?path, "Failed to add paper");
+                                    error!("Failed to add paper from file {:?}: {}", path, err);
                                     continue;
                                 }
-                            };
+                            }
                         }
                     }
                 }
@@ -678,7 +691,7 @@ fn add<P: AsRef<Path>>(
     mut authors: BTreeSet<Author>,
     tags: BTreeSet<Tag>,
     labels: BTreeSet<Label>,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<Paper> {
     if let Some(file) = file.as_ref() {
         let file = file.as_ref();
         if !file.is_file() {
@@ -697,7 +710,7 @@ fn add<P: AsRef<Path>>(
     let paper = repo.add(file, url, title, authors, tags, labels)?;
     info!(id = paper.id, filename = paper.filename, "Added paper");
 
-    Ok(())
+    Ok(paper)
 }
 
 fn extract_title(file: &Path) -> Option<String> {

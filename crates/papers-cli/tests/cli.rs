@@ -1,10 +1,11 @@
 mod common;
-use common::check_ok;
+use common::Fixture;
 use expect_test::expect;
 
 #[test]
 fn test_help() {
-    check_ok(
+    let mut f = Fixture::new();
+    f.check_ok(
         "--help",
         expect![[r#"
             A paper management program
