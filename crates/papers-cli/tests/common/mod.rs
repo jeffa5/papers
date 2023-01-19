@@ -1,7 +1,7 @@
 use papers_cli_lib::config::Config;
 use std::fs::create_dir_all;
 use std::io::Write;
-use std::process::Output;
+use std::process::{Output, Stdio};
 use std::{fs::File, path::PathBuf, process::Command, str::from_utf8};
 use tempfile::{tempdir, TempDir};
 
@@ -75,7 +75,7 @@ impl Fixture {
         self.root_dir().join("config.yaml")
     }
 
-    pub fn run(&self, args: &str) -> Output {
+    pub fn run_with_stdin(&self, args: &str, stdin: &str) -> Output {
         let args = format!(
             "{} --config-file {}",
             args,
@@ -91,8 +91,23 @@ impl Fixture {
         if self.debug {
             cmd.env("RUST_LOG", "debug");
         }
+        cmd.stdin(Stdio::piped());
+        cmd.stdout(Stdio::piped());
+        cmd.stderr(Stdio::piped());
+
         println!("Running command: {:?}", cmd);
-        cmd.output().unwrap()
+        let mut child = cmd.spawn().unwrap();
+        child
+            .stdin
+            .as_mut()
+            .unwrap()
+            .write_all(stdin.as_bytes())
+            .unwrap();
+        child.wait_with_output().unwrap()
+    }
+
+    pub fn run(&self, args: &str) -> Output {
+        self.run_with_stdin(args, "")
     }
 
     pub fn check_ok(&mut self, args: &str, out: Expect, err: Expect) {
