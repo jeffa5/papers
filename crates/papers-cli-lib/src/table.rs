@@ -1,6 +1,5 @@
 use std::{collections::BTreeSet, fmt::Display, time::Duration};
 
-use comfy_table::Cell;
 use papers_core::{author::Author, label::Label, paper::Paper, tag::Tag};
 use serde::Serialize;
 
