@@ -714,7 +714,7 @@ fn extract_title(file: &Path) -> Option<String> {
                 {
                     if !found_title.is_empty() {
                         debug!(?file, title = found_title, "Setting auto title");
-                        return Some(found_title);
+                        return Some(found_title.trim().to_owned());
                     }
                 }
             }
