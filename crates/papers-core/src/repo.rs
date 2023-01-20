@@ -344,7 +344,7 @@ impl Repo {
             .map(|l| Label::new(&l.label_key, &l.label_value))
             .collect();
 
-        let notes = self.db.get_note(paper_id).map(|n| n.content).ok();
+        let notes = self.db.get_note(paper_id)?.map(|n| n.content);
 
         Ok(Paper {
             id: paper_id,
@@ -405,7 +405,7 @@ impl Repo {
                 .map(|l| Label::new(&l.label_key, &l.label_value))
                 .collect();
 
-            let notes = self.db.get_note(paper.id).map(|n| n.content).ok();
+            let notes = self.db.get_note(paper.id)?.map(|n| n.content);
 
             if let Some(match_file) = match_file.as_ref() {
                 if let Some(filename) = paper.filename.as_ref() {
@@ -462,16 +462,12 @@ impl Repo {
         Ok(papers)
     }
 
-    pub fn get_note(&mut self, paper_id: i32) -> anyhow::Result<db::Note> {
-        if let Ok(note) = self.db.get_note(paper_id) {
-            return Ok(note);
-        }
-        let note = db::NewNote {
-            paper_id,
-            content: String::new(),
-        };
-        self.db.insert_note(note)?;
+    pub fn get_note(&mut self, paper_id: i32) -> anyhow::Result<Option<db::Note>> {
         self.db.get_note(paper_id)
+    }
+
+    pub fn insert_note(&mut self, note: db::NewNote) -> anyhow::Result<()> {
+        self.db.insert_note(note)
     }
 
     pub fn update_note(&mut self, note: db::Note) -> anyhow::Result<()> {

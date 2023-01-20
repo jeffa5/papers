@@ -432,14 +432,34 @@ impl SubCommand {
             }
             Self::Notes { paper_id } => {
                 let mut repo = load_repo(config)?;
-                let mut note = repo.get_note(paper_id)?;
+                let note = repo.get_note(paper_id)?;
+
+                let content = match &note {
+                    Some(note) => note.content.clone(),
+                    None => {
+                        if let Some(template_file) = &config.notes_template {
+                            let abs_path = if template_file.is_absolute() {
+                                template_file.clone()
+                            } else {
+                                repo.root().join(template_file)
+                            };
+                            debug!(?abs_path, ?template_file, "New note, loading template");
+                            let mut f = File::open(abs_path)?;
+                            let mut template = String::new();
+                            f.read_to_string(&mut template)?;
+                            template
+                        } else {
+                            String::new()
+                        }
+                    }
+                };
 
                 let paper = repo.get_paper(paper_id)?;
                 let dont_edit = "# Do not edit this metadata, write notes below.";
                 let content = format!(
                     "---\n{}{dont_edit}\n---\n\n{}",
                     serde_yaml::to_string(&paper).unwrap(),
-                    note.content
+                    content
                 );
 
                 let mut file = tempfile::Builder::new()
@@ -458,8 +478,15 @@ impl SubCommand {
                 let matter = Matter::<YAML>::new();
                 let result = matter.parse(&content);
 
-                note.content = result.content;
-                repo.update_note(note)?;
+                if let Some(mut note) = note {
+                    note.content = result.content;
+                    repo.update_note(note)?;
+                } else {
+                    repo.insert_note(papers_core::db::NewNote {
+                        paper_id,
+                        content: result.content,
+                    })?;
+                }
             }
             Self::Open { paper_id } => {
                 let mut repo = load_repo(config)?;

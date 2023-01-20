@@ -216,11 +216,12 @@ impl Db {
         Ok(res)
     }
 
-    pub fn get_note(&mut self, pid: i32) -> anyhow::Result<Note> {
+    pub fn get_note(&mut self, pid: i32) -> anyhow::Result<Option<Note>> {
         use schema::notes::dsl::{notes, paper_id};
         let res = notes
             .filter(paper_id.eq(pid))
-            .first::<Note>(&mut self.connection)?;
+            .first::<Note>(&mut self.connection)
+            .optional()?;
         Ok(res)
     }
 

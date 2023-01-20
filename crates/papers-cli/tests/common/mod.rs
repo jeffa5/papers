@@ -68,6 +68,7 @@ impl Fixture {
         Config {
             db_filename: "test.db".into(),
             default_repo: self.root.path().to_owned(),
+            notes_template: None,
         }
     }
 

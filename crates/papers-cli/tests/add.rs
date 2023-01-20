@@ -42,7 +42,11 @@ fn test_add_without_init() {
 #[test]
 fn test_add_missing_file() {
     let mut f = Fixture::new();
-    f.check_ok("add --file missing.pdf",  expect![[""]], expect![[r#"error: Failed to add paper: Path was not a file: "missing.pdf""#]]);
+    f.check_ok(
+        "add --file missing.pdf",
+        expect![[""]],
+        expect![[r#"error: Failed to add paper: Path was not a file: "missing.pdf""#]],
+    );
 }
 
 #[test]
@@ -88,10 +92,5 @@ fn test_add_file_from_neighbour() {
 #[test]
 fn test_add_interactive() {
     let mut f = Fixture::new();
-    f.check_ok_with_stdin(
-        "add",
-        "",
-        expect!["Added paper 1"],
-        expect![""],
-    );
+    f.check_ok_with_stdin("add", "", expect!["Added paper 1"], expect![""]);
 }

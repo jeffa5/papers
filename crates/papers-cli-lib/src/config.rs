@@ -17,6 +17,9 @@ pub struct Config {
     /// Directory of the default repo, if no db found in the parent directories.
     #[serde(default = "default_repo")]
     pub default_repo: PathBuf,
+
+    /// Path to the notes template, either absolute or relative to the `default_repo`.
+    pub notes_template: Option<PathBuf>,
 }
 
 fn default_repo() -> PathBuf {
