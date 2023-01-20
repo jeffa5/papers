@@ -88,14 +88,21 @@ impl Config {
 
 #[cfg(test)]
 mod tests {
+
+    use directories::UserDirs;
     use expect_test::{expect, Expect};
 
     use super::*;
 
     fn check(config: &str, expected: Expect) {
         println!("{}", config);
-        let res = Config::load_str(config);
-        expected.assert_debug_eq(&res);
+        let mut conf = Config::load_str(config).unwrap();
+
+        let userdirs = UserDirs::new().unwrap();
+        let home = userdirs.home_dir();
+        conf.default_repo = conf.default_repo.strip_prefix(home).unwrap().to_path_buf();
+
+        expected.assert_debug_eq(&conf);
     }
 
     #[test]
@@ -103,19 +110,17 @@ mod tests {
         check(
             r#""#,
             expect![[r#"
-                Ok(
-                    Config {
-                        db_filename: "papers.db",
-                        default_repo: "/home/andrew/.local/share/papers",
-                        notes_template: Content(
-                            "",
-                        ),
-                        paper_defaults: PaperDefaults {
-                            tags: {},
-                            labels: {},
-                        },
+                Config {
+                    db_filename: "papers.db",
+                    default_repo: ".local/share/papers",
+                    notes_template: Content(
+                        "",
+                    ),
+                    paper_defaults: PaperDefaults {
+                        tags: {},
+                        labels: {},
                     },
-                )
+                }
             "#]],
         );
     }
@@ -127,19 +132,17 @@ mod tests {
   file: some_path.md
 "#,
             expect![[r#"
-                Ok(
-                    Config {
-                        db_filename: "papers.db",
-                        default_repo: "/home/andrew/.local/share/papers",
-                        notes_template: File(
-                            "some_path.md",
-                        ),
-                        paper_defaults: PaperDefaults {
-                            tags: {},
-                            labels: {},
-                        },
+                Config {
+                    db_filename: "papers.db",
+                    default_repo: ".local/share/papers",
+                    notes_template: File(
+                        "some_path.md",
+                    ),
+                    paper_defaults: PaperDefaults {
+                        tags: {},
+                        labels: {},
                     },
-                )
+                }
             "#]],
         );
     }
@@ -151,19 +154,17 @@ mod tests {
   content: my content
             "#,
             expect![[r#"
-                Ok(
-                    Config {
-                        db_filename: "papers.db",
-                        default_repo: "/home/andrew/.local/share/papers",
-                        notes_template: Content(
-                            "my content",
-                        ),
-                        paper_defaults: PaperDefaults {
-                            tags: {},
-                            labels: {},
-                        },
+                Config {
+                    db_filename: "papers.db",
+                    default_repo: ".local/share/papers",
+                    notes_template: Content(
+                        "my content",
+                    ),
+                    paper_defaults: PaperDefaults {
+                        tags: {},
+                        labels: {},
                     },
-                )
+                }
             "#]],
         );
     }
@@ -181,19 +182,17 @@ mod tests {
      line 3
             "#,
             expect![[r#"
-                Ok(
-                    Config {
-                        db_filename: "papers.db",
-                        default_repo: "/home/andrew/.local/share/papers",
-                        notes_template: Content(
-                            "line 1\nline 2\n\na break\n\n line 3\n        ",
-                        ),
-                        paper_defaults: PaperDefaults {
-                            tags: {},
-                            labels: {},
-                        },
+                Config {
+                    db_filename: "papers.db",
+                    default_repo: ".local/share/papers",
+                    notes_template: Content(
+                        "line 1\nline 2\n\na break\n\n line 3\n        ",
+                    ),
+                    paper_defaults: PaperDefaults {
+                        tags: {},
+                        labels: {},
                     },
-                )
+                }
             "#]],
         );
     }

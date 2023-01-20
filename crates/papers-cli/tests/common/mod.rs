@@ -3,7 +3,7 @@ use std::fs::create_dir_all;
 use std::io::Write;
 use std::process::{Output, Stdio};
 use std::{fs::File, path::PathBuf, process::Command, str::from_utf8};
-use tempfile::{TempDir, tempdir_in};
+use tempfile::{tempdir_in, TempDir};
 
 use expect_test::Expect;
 

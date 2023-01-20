@@ -23,7 +23,7 @@ use papers_core::label::Label;
 
 use crate::{
     config::{Config, PathOrString},
-    interactive::{input_bool, input_opt, input_vec, input_default, input_vec_default},
+    interactive::{input_bool, input_default, input_opt, input_vec, input_vec_default},
     table::Table,
 };
 use crate::{error, rename_files};
@@ -255,8 +255,7 @@ impl SubCommand {
                             // try and get the default filename to use
                             let default_file =
                                 url.path_segments().unwrap().last().unwrap().to_owned();
-                            file =
-                                Some(input_default::<PathBuf>("Path to file", &default_file));
+                            file = Some(input_default::<PathBuf>("Path to file", &default_file));
                         } else {
                             file = input_opt::<PathBuf>("Path to file");
                         };
@@ -297,8 +296,7 @@ impl SubCommand {
                                 .map(|a| a.to_string())
                                 .collect::<Vec<String>>()
                                 .join(",");
-                            authors =
-                                input_vec_default("Authors", &extracted_authors_str, ",");
+                            authors = input_vec_default("Authors", &extracted_authors_str, ",");
                         }
                     } else {
                         let authors_string = authors
@@ -585,7 +583,10 @@ impl SubCommand {
                         };
 
                         if new_path == path {
-                            println!("{}: Skipping paper as already has the correct name", paper.id);
+                            println!(
+                                "{}: Skipping paper as already has the correct name",
+                                paper.id
+                            );
                             continue;
                         }
                         if new_path.exists() {
