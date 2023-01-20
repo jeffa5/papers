@@ -182,6 +182,10 @@ pub enum SubCommand {
         /// Strategy to use in renaming.
         #[clap(required = true)]
         strategies: Vec<rename_files::Strategy>,
+
+        /// Print information but don't perform renaming.
+        #[clap(long)]
+        dry_run: bool,
     },
     /// Open the file for the given paper.
     Open {
@@ -494,7 +498,10 @@ impl SubCommand {
                     })?;
                 }
             }
-            Self::RenameFiles { strategies } => {
+            Self::RenameFiles {
+                strategies,
+                dry_run,
+            } => {
                 let mut repo = load_repo(config)?;
                 for paper in repo.list(
                     Vec::new(),
@@ -539,8 +546,10 @@ impl SubCommand {
                         }
 
                         // old exists, new doesn't exist, do the rename
-                        rename(&path, &new_path).unwrap();
-                        repo.update(paper.id, Some(&new_path), None, None).unwrap();
+                        if !dry_run {
+                            rename(&path, &new_path).unwrap();
+                            repo.update(paper.id, Some(&new_path), None, None).unwrap();
+                        }
                         println!("Renamed {:?} to {:?}", path, new_path);
                     } else {
                         debug!(id = paper.id, "Skipping paper");

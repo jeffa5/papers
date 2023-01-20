@@ -24,6 +24,9 @@ fn test_help() {
               -c, --config-file <CONFIG_FILE>
                       Config file path to load
 
+                  --dry-run
+                      Print information but don't perform renaming
+
                   --default-repo <DEFAULT_REPO>
                       Default repo to use if not found in parents of current directory
 
