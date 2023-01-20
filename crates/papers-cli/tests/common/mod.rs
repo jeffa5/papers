@@ -1,4 +1,4 @@
-use papers_cli_lib::config::{Config, PaperDefaults};
+use papers_cli_lib::config::{Config, PaperDefaults, PathOrString};
 use std::fs::create_dir_all;
 use std::io::Write;
 use std::process::{Output, Stdio};
@@ -68,7 +68,7 @@ impl Fixture {
         Config {
             db_filename: "test.db".into(),
             default_repo: self.root.path().to_owned(),
-            notes_template: None,
+            notes_template: PathOrString::default(),
             paper_defaults: PaperDefaults::default(),
         }
     }

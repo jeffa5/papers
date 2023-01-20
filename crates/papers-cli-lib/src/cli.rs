@@ -22,7 +22,7 @@ use tracing::{debug, info, warn};
 use papers_core::label::Label;
 
 use crate::{
-    config::Config,
+    config::{Config, PathOrString},
     interactive::{input_bool, input_opt, input_vec},
     table::Table,
 };
@@ -463,8 +463,8 @@ impl SubCommand {
 
                 let content = match &note {
                     Some(note) => note.content.clone(),
-                    None => {
-                        if let Some(template_file) = &config.notes_template {
+                    None => match &config.notes_template {
+                        PathOrString::File(template_file) => {
                             let abs_path = if template_file.is_absolute() {
                                 template_file.clone()
                             } else {
@@ -475,10 +475,9 @@ impl SubCommand {
                             let mut template = String::new();
                             f.read_to_string(&mut template)?;
                             template
-                        } else {
-                            String::new()
                         }
-                    }
+                        PathOrString::Content(s) => s.clone(),
+                    },
                 };
 
                 let paper = repo.get_paper(paper_id)?;
