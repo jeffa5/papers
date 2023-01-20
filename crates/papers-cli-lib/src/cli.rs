@@ -272,8 +272,14 @@ impl SubCommand {
                         println!("Using authors {}", authors_string);
                     }
 
+                    let default_tags = &config.paper_defaults.tags;
                     if tags.is_empty() {
-                        tags = input_vec("Tags", " ");
+                        let default_tags_str = default_tags
+                            .iter()
+                            .map(|t| t.to_string())
+                            .collect::<Vec<String>>()
+                            .join(",");
+                        tags = input_vec(&format!("Tags (default: {})", default_tags_str), " ");
                     } else {
                         let tags_string = tags
                             .iter()
@@ -282,9 +288,19 @@ impl SubCommand {
                             .join(",");
                         println!("Using tags {}", tags_string);
                     }
+                    tags.extend(default_tags.iter().cloned());
 
+                    let default_labels = &config.paper_defaults.labels;
                     if labels.is_empty() {
-                        labels = input_vec("Labels (key=value)", " ");
+                        let default_labels_str = default_labels
+                            .iter()
+                            .map(|l| l.to_string())
+                            .collect::<Vec<String>>()
+                            .join(",");
+                        labels = input_vec(
+                            &format!("Labels (key=value) (default: {})", default_labels_str),
+                            " ",
+                        );
                     } else {
                         let labels_string = labels
                             .iter()
@@ -293,6 +309,7 @@ impl SubCommand {
                             .join(",");
                         println!("Using labels {}", labels_string);
                     }
+                    labels.extend(default_labels.iter().cloned());
                 }
 
                 let authors = BTreeSet::from_iter(authors);

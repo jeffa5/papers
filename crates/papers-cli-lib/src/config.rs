@@ -1,11 +1,25 @@
+use std::collections::BTreeSet;
 use std::fs::File;
 use std::path::Path;
 use std::path::PathBuf;
 
 use directories::ProjectDirs;
+use papers_core::label::Label;
+use papers_core::tag::Tag;
 use serde::Deserialize;
 use serde::Serialize;
 use tracing::debug;
+
+/// Default values for a paper.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct PaperDefaults {
+    /// Default list of tags.
+    #[serde(default)]
+    pub tags: BTreeSet<Tag>,
+    /// Default list of labels.
+    #[serde(default)]
+    pub labels: BTreeSet<Label>,
+}
 
 /// The config to be loaded.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -20,6 +34,10 @@ pub struct Config {
 
     /// Path to the notes template, either absolute or relative to the `default_repo`.
     pub notes_template: Option<PathBuf>,
+
+    /// Defaults for paper fields on entry
+    #[serde(default)]
+    pub paper_defaults: PaperDefaults,
 }
 
 fn default_repo() -> PathBuf {
