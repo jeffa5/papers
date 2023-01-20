@@ -1,7 +1,7 @@
 use std::{
     collections::BTreeSet,
     env::current_dir,
-    fs::{remove_file, File},
+    fs::{remove_file, rename, File},
     io::{stdin, stdout, Read, Write},
     path::{Path, PathBuf},
     process::Command,
@@ -21,12 +21,12 @@ use tracing::{debug, info, warn};
 
 use papers_core::label::Label;
 
-use crate::error;
 use crate::{
     config::Config,
     interactive::{input_bool, input_opt, input_vec},
     table::Table,
 };
+use crate::{error, rename_files};
 use crate::{file_or_stdin::FileOrStdin, ids::Ids};
 
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
@@ -176,6 +176,12 @@ pub enum SubCommand {
         #[clap()]
         paper_id: i32,
         // TODO: create another nested subcommand for show, edit, ..
+    },
+    /// Automatically rename files to match their entry in the database.
+    RenameFiles {
+        /// Strategy to use in renaming.
+        #[clap(required = true)]
+        strategies: Vec<rename_files::Strategy>,
     },
     /// Open the file for the given paper.
     Open {
@@ -486,6 +492,60 @@ impl SubCommand {
                         paper_id,
                         content: result.content,
                     })?;
+                }
+            }
+            Self::RenameFiles { strategies } => {
+                let mut repo = load_repo(config)?;
+                for paper in repo.list(
+                    Vec::new(),
+                    None,
+                    None,
+                    Vec::new(),
+                    Vec::new(),
+                    Vec::new(),
+                    false,
+                )? {
+                    if let Some(filename) = &paper.filename {
+                        let path = PathBuf::from(filename);
+                        if !path.is_file() {
+                            error!("Path for paper {} ({:?}) wasn't a file", paper.id, path);
+                            continue;
+                        }
+                        // the file exists
+                        // make the new name and check that file doesn't exist
+                        let new_name = strategies.iter().find_map(|s| s.rename(&paper).ok());
+                        let new_filename = if let Some(new_name) = new_name {
+                            new_name
+                        } else {
+                            error!("Failed to generate new name for paper {}", paper.id);
+                            continue;
+                        };
+
+                        let new_path = if let Some(parent) = path.parent() {
+                            parent
+                                .join(new_filename)
+                                .with_extension(path.extension().unwrap_or_default())
+                        } else {
+                            PathBuf::from(new_filename)
+                                .with_extension(path.extension().unwrap_or_default())
+                        };
+
+                        if new_path.exists() {
+                            error!(
+                                "New path for paper {} already exists: {:?}",
+                                paper.id, new_path
+                            );
+                            continue;
+                        }
+
+                        // old exists, new doesn't exist, do the rename
+                        rename(&path, &new_path).unwrap();
+                        repo.update(paper.id, Some(&new_path), None, None).unwrap();
+                        println!("Renamed {:?} to {:?}", path, new_path);
+                    } else {
+                        debug!(id = paper.id, "Skipping paper");
+                        println!("Skipping paper {} as it has no file associated", paper.id)
+                    }
                 }
             }
             Self::Open { paper_id } => {
