@@ -25,6 +25,24 @@ where
     T::from_str(&input).unwrap()
 }
 
+/// Get a line of input converted to a FromStr type, or the default value.
+pub fn input_default<T: FromStr + Debug + Default + PartialEq>(prompt: &str, default: &str) -> T
+where
+    <T as FromStr>::Err: Debug,
+{
+    let input = input_string(&format!("{} [{}]", prompt, default));
+    match T::from_str(&input) {
+        Ok(res) => {
+            if res != T::default() {
+                res
+            } else {
+                T::from_str(default).unwrap()
+            }
+        }
+        Err(_) => T::from_str(default).unwrap(),
+    }
+}
+
 /// Get a line of input converted to a FromStr type if there was any.
 pub fn input_opt<T: FromStr + Debug>(prompt: &str) -> Option<T>
 where
@@ -35,6 +53,28 @@ where
         None
     } else {
         Some(T::from_str(&input).unwrap())
+    }
+}
+
+/// Get a line of input converted to a FromStr type if there was any.
+pub fn input_vec_default<T: FromStr + Debug>(prompt: &str, sep: &str, default: &str) -> Vec<T>
+where
+    <T as FromStr>::Err: Debug,
+{
+    let input = input_vec(&format!("{} [{}]", prompt, default), sep);
+    if input.is_empty() {
+        default
+            .split(sep)
+            .filter_map(|s| {
+                if s.is_empty() {
+                    None
+                } else {
+                    Some(T::from_str(s).unwrap())
+                }
+            })
+            .collect()
+    } else {
+        input
     }
 }
 
@@ -57,11 +97,16 @@ where
 }
 
 /// Get a line of input converted to a FromStr type if there was any.
-pub fn input_bool(prompt: &str) -> bool {
-    let input = input_string(&format!("{} [y/n]", prompt));
+pub fn input_bool(prompt: &str, default: bool) -> bool {
+    let input = input_string(&format!(
+        "{} [{}/{}]",
+        prompt,
+        if default { "Y" } else { "y" },
+        if default { "n" } else { "N" }
+    ));
     match input.to_lowercase().as_str() {
         "y" | "yes" => true,
         "n" | "no" => false,
-        _ => panic!("Required yes or no, found {}", input),
+        _ => default,
     }
 }

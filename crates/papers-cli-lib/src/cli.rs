@@ -23,7 +23,7 @@ use papers_core::label::Label;
 
 use crate::{
     config::{Config, PathOrString},
-    interactive::{input_bool, input_opt, input_vec},
+    interactive::{input_bool, input_opt, input_vec, input_default, input_vec_default},
     table::Table,
 };
 use crate::{error, rename_files};
@@ -230,13 +230,6 @@ impl SubCommand {
                 mut labels,
             } => {
                 if atty::is(atty::Stream::Stdout) {
-                    // interactive add
-                    if let Some(file) = &file {
-                        println!("Using file {:?}", file);
-                    } else {
-                        file = input_opt::<PathBuf>("Path to file");
-                    }
-
                     if let Some(url) = &url {
                         println!("Using url {}", url);
                     } else {
@@ -251,18 +244,62 @@ impl SubCommand {
                         }
                     } else {
                         if let Some(url) = &url {
-                            fetch = Some(input_bool(&format!("Fetch {}", url)));
+                            fetch = Some(input_bool(&format!("Fetch {}", url), false));
+                        }
+                    }
+
+                    if let Some(file) = &file {
+                        println!("Using file {:?}", file);
+                    } else {
+                        if let Some((url, true)) = url.as_ref().zip(fetch) {
+                            // try and get the default filename to use
+                            let default_file =
+                                url.path_segments().unwrap().last().unwrap().to_owned();
+                            file =
+                                Some(input_default::<PathBuf>("Path to file", &default_file));
+                        } else {
+                            file = input_opt::<PathBuf>("Path to file");
+                        };
+                    }
+
+                    if let Some(true) = fetch {
+                        if let Some(url) = &url {
+                            file = Some(fetch_url(&url, &file.unwrap())?);
                         }
                     }
 
                     if let Some(title) = &title {
                         println!("Using title {}", title);
                     } else {
-                        title = input_opt("Title");
+                        let extracted_title = if let Some(file) = &file {
+                            extract_title(file)
+                        } else {
+                            None
+                        };
+                        if let Some(extracted_title) = extracted_title {
+                            title = Some(input_default("Title", &extracted_title));
+                        } else {
+                            title = input_opt("Title");
+                        }
                     }
 
                     if authors.is_empty() {
-                        authors = input_vec("Authors", ",");
+                        let extracted_authors = if let Some(file) = &file {
+                            extract_authors(file)
+                        } else {
+                            BTreeSet::new()
+                        };
+                        if extracted_authors.is_empty() {
+                            authors = input_vec("Authors", ",");
+                        } else {
+                            let extracted_authors_str = extracted_authors
+                                .iter()
+                                .map(|a| a.to_string())
+                                .collect::<Vec<String>>()
+                                .join(",");
+                            authors =
+                                input_vec_default("Authors", &extracted_authors_str, ",");
+                        }
                     } else {
                         let authors_string = authors
                             .iter()
@@ -316,12 +353,6 @@ impl SubCommand {
                 let tags = BTreeSet::from_iter(tags);
                 let labels = BTreeSet::from_iter(labels);
                 let mut repo = load_repo(config)?;
-
-                if let Some(true) = fetch {
-                    if let Some(url) = &url {
-                        file = Some(fetch_url(&url, file.as_deref())?);
-                    }
-                }
 
                 let url = url.map(|u| u.to_string());
 
@@ -783,12 +814,8 @@ impl LabelsCommands {
 }
 
 /// Fetch a url to a local file, returning the path to the fetch file.
-fn fetch_url(url: &Url, path: Option<&Path>) -> anyhow::Result<PathBuf> {
-    let mut filename = if let Some(path) = path {
-        path.to_owned()
-    } else {
-        PathBuf::from(url.path_segments().unwrap().last().unwrap().to_owned())
-    };
+fn fetch_url(url: &Url, path: &Path) -> anyhow::Result<PathBuf> {
+    let mut filename = path.to_owned();
 
     if PathBuf::from(&filename).exists() {
         warn!(?filename, "Path already exists, try moving it");
