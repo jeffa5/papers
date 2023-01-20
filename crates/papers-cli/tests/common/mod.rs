@@ -3,7 +3,7 @@ use std::fs::create_dir_all;
 use std::io::Write;
 use std::process::{Output, Stdio};
 use std::{fs::File, path::PathBuf, process::Command, str::from_utf8};
-use tempfile::{tempdir, TempDir};
+use tempfile::{TempDir, tempdir_in};
 
 use expect_test::Expect;
 
@@ -18,7 +18,7 @@ pub struct Fixture {
 impl Fixture {
     pub fn new() -> Self {
         let s = Self {
-            root: tempdir().unwrap(),
+            root: tempdir_in(env!("CARGO_TARGET_TMPDIR")).unwrap(),
             do_init: true,
             initialised: false,
             debug: false,
