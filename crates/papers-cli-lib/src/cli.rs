@@ -699,7 +699,7 @@ impl LabelsCommands {
 
 /// Fetch a url to a local file, returning the path to the fetch file.
 fn fetch_url(url: &Url, path: Option<&Path>) -> anyhow::Result<PathBuf> {
-    let filename = if let Some(path) = path {
+    let mut filename = if let Some(path) = path {
         path.to_owned()
     } else {
         PathBuf::from(url.path_segments().unwrap().last().unwrap().to_owned())
@@ -735,8 +735,19 @@ fn fetch_url(url: &Url, path: Option<&Path>) -> anyhow::Result<PathBuf> {
     };
     let headers = res.headers();
     if let Some(content_type) = headers.get(http::header::CONTENT_TYPE) {
-        if content_type != "application/pdf" {
-            warn!("File fetched was not a pdf, perhaps it needs authorisation?")
+        if content_type == "application/pdf" {
+            // ensure the path ends in pdf
+            if let Some("pdf") = filename.extension().and_then(|s| s.to_str()) {
+                debug!(?filename, "Filename already has pdf extension");
+            } else {
+                debug!(?filename, "Setting pdf extension on filename");
+                filename.set_extension("pdf");
+            }
+        } else {
+            warn!(
+                ?content_type,
+                "File fetched was not a pdf, perhaps it needs authorisation?"
+            )
         }
     }
 
