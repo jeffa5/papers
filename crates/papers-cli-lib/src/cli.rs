@@ -562,7 +562,7 @@ impl SubCommand {
                     if let Some(filename) = &paper.filename {
                         let path = PathBuf::from(filename);
                         if !path.is_file() {
-                            error!("Path for paper {} ({:?}) wasn't a file", paper.id, path);
+                            error!("{}: Path for paper ({:?}) wasn't a file", paper.id, path);
                             continue;
                         }
                         // the file exists
@@ -571,7 +571,7 @@ impl SubCommand {
                         let new_filename = if let Some(new_name) = new_name {
                             new_name
                         } else {
-                            error!("Failed to generate new name for paper {}", paper.id);
+                            error!("{}: Failed to generate new name for paper", paper.id);
                             continue;
                         };
 
@@ -584,9 +584,13 @@ impl SubCommand {
                                 .with_extension(path.extension().unwrap_or_default())
                         };
 
+                        if new_path == path {
+                            println!("{}: Skipping paper as already has the correct name", paper.id);
+                            continue;
+                        }
                         if new_path.exists() {
                             error!(
-                                "New path for paper {} already exists: {:?}",
+                                "{}: New path for paper already exists: {:?}",
                                 paper.id, new_path
                             );
                             continue;
@@ -597,10 +601,10 @@ impl SubCommand {
                             rename(&path, &new_path).unwrap();
                             repo.update(paper.id, Some(&new_path), None, None).unwrap();
                         }
-                        println!("Renamed {:?} to {:?}", path, new_path);
+                        println!("{}: Renamed {:?} to {:?}", paper.id, path, new_path);
                     } else {
                         debug!(id = paper.id, "Skipping paper");
-                        println!("Skipping paper {} as it has no file associated", paper.id)
+                        println!("{}: Skipping paper as it has no file associated", paper.id)
                     }
                 }
             }
