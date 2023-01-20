@@ -8,19 +8,19 @@ fn test_help() {
     f.check_ok(
         "add --help",
         expect![[r#"
-            Add paper documents from a url or local file
+            Add a paper to the repo
 
-            Usage: papers add [OPTIONS] [URL_OR_PATH]...
-
-            Arguments:
-              [URL_OR_PATH]...  List of Urls to fetch from or paths of local files in the repo
+            Usage: papers add [OPTIONS]
 
             Options:
               -c, --config-file <CONFIG_FILE>    Config file path to load
+              -u, --url <URL>                    Url to fetch from
+                  --default-repo <DEFAULT_REPO>  Default repo to use if not found in parents of current directory
+                  --fetch <FETCH>                Whether to fetch the document from URL or not [possible values: true, false]
+                  --db-filename <DB_FILENAME>    Filename for the database
+              -f, --file <FILE>                  File to add
                   --title <TITLE>                Title of the file
               -a, --author <author>              Authors to associate with these files
-                  --default-repo <DEFAULT_REPO>  Default repo to use if not found in parents of current directory
-                  --db-filename <DB_FILENAME>    Filename for the database
               -t, --tag <tag>                    Tags to associate with these files
               -l, --label <label>                Labels to associate with these files. Labels take the form `key=value`
               -h, --help                         Print help information"#]],
@@ -33,7 +33,7 @@ fn test_add_without_init() {
     let mut f = Fixture::new();
     f.no_init();
     f.check_ok(
-        "add missing.pdf",
+        "add --file missing.pdf",
         expect![[""]],
         expect!["Error: Not a repo, run `init` first"],
     );
@@ -42,15 +42,15 @@ fn test_add_without_init() {
 #[test]
 fn test_add_missing_file() {
     let mut f = Fixture::new();
-    f.check_ok("add missing.pdf",  expect![[""]], expect![[r#"error: Failed to add paper from file "missing.pdf": Path was not a file: "missing.pdf""#]]);
+    f.check_ok("add --file missing.pdf",  expect![[""]], expect![[r#"error: Failed to add paper: Path was not a file: "missing.pdf""#]]);
 }
 
 #[test]
 fn test_add_present_file() {
     let mut f = Fixture::new();
     f.check_ok(
-        "add file1.pdf",
-        expect!["Added paper 1 from file1.pdf"],
+        "add --file file1.pdf",
+        expect!["Added paper 1"],
         expect![""],
     );
 }
@@ -69,8 +69,8 @@ fn test_add_just_title() {
 fn test_add_file_from_nested_dir() {
     let mut f = Fixture::new();
     f.check_ok(
-        "add nested/file1.pdf",
-        expect!["Added paper 1 from nested/file1.pdf"],
+        "add --file nested/file1.pdf",
+        expect!["Added paper 1"],
         expect![""],
     );
 }
@@ -79,8 +79,19 @@ fn test_add_file_from_nested_dir() {
 fn test_add_file_from_neighbour() {
     let mut f = Fixture::new();
     f.check_ok(
-        "add ../neighbour/file1.pdf",
+        "add --file ../neighbour/file1.pdf",
         expect![""],
-        expect![[r#"error: Failed to add paper from file "../neighbour/file1.pdf": File does not live in the root"#]],
+        expect!["error: Failed to add paper: File does not live in the root"],
+    );
+}
+
+#[test]
+fn test_add_interactive() {
+    let mut f = Fixture::new();
+    f.check_ok_with_stdin(
+        "add",
+        "",
+        expect!["Added paper 1"],
+        expect![""],
     );
 }

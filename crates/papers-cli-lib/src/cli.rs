@@ -16,12 +16,17 @@ use papers_core::{
     repo::{self, Repo},
     tag::Tag,
 };
+use reqwest::Url;
 use tracing::{debug, info, warn};
 
 use papers_core::label::Label;
 
 use crate::error;
-use crate::{config::Config, table::Table, url_path::UrlOrPath};
+use crate::{
+    config::Config,
+    interactive::{input_bool, input_opt, input_vec},
+    table::Table,
+};
 use crate::{file_or_stdin::FileOrStdin, ids::Ids};
 
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
@@ -55,12 +60,19 @@ pub enum SubCommand {
         #[clap(default_value = ".")]
         dir: PathBuf,
     },
-    // TODO: interactive fetch and add
-    /// Add paper documents from a url or local file.
+    /// Add a paper to the repo.
     Add {
-        /// List of Urls to fetch from or paths of local files in the repo.
-        #[clap()]
-        url_or_path: Vec<UrlOrPath>,
+        /// Url to fetch from.
+        #[clap(long, short)]
+        url: Option<Url>,
+
+        /// Whether to fetch the document from URL or not.
+        #[clap(long)]
+        fetch: Option<bool>,
+
+        /// File to add.
+        #[clap(long, short)]
+        file: Option<PathBuf>,
 
         /// Title of the file.
         #[clap(long)]
@@ -199,133 +211,108 @@ impl SubCommand {
                 info!(?dir, "Initialised the directory");
             }
             Self::Add {
-                url_or_path,
-                title,
-                authors,
-                tags,
-                labels,
+                mut url,
+                mut fetch,
+                mut file,
+                mut title,
+                mut authors,
+                mut tags,
+                mut labels,
             } => {
+                if atty::is(atty::Stream::Stdout) {
+                    // interactive add
+                    if let Some(file) = &file {
+                        println!("Using file {:?}", file);
+                    } else {
+                        file = input_opt::<PathBuf>("Path to file");
+                    }
+
+                    if let Some(url) = &url {
+                        println!("Using url {}", url);
+                    } else {
+                        url = input_opt::<Url>("Url for document");
+                    }
+
+                    if let Some(fetch) = fetch {
+                        if fetch {
+                            println!("Will fetch url");
+                        } else {
+                            println!("Will not fetch url");
+                        }
+                    } else {
+                        if let Some(url) = &url {
+                            fetch = Some(input_bool(&format!("Fetch {}", url)));
+                        }
+                    }
+
+                    if let Some(title) = &title {
+                        println!("Using title {}", title);
+                    } else {
+                        title = input_opt("Title");
+                    }
+
+                    if authors.is_empty() {
+                        authors = input_vec("Authors", ",");
+                    } else {
+                        let authors_string = authors
+                            .iter()
+                            .map(|a| a.to_string())
+                            .collect::<Vec<String>>()
+                            .join(",");
+                        println!("Using authors {}", authors_string);
+                    }
+
+                    if tags.is_empty() {
+                        tags = input_vec("Tags", " ");
+                    } else {
+                        let tags_string = tags
+                            .iter()
+                            .map(|t| t.to_string())
+                            .collect::<Vec<String>>()
+                            .join(",");
+                        println!("Using tags {}", tags_string);
+                    }
+
+                    if labels.is_empty() {
+                        labels = input_vec("Labels (key=value)", " ");
+                    } else {
+                        let labels_string = labels
+                            .iter()
+                            .map(|l| l.to_string())
+                            .collect::<Vec<String>>()
+                            .join(",");
+                        println!("Using labels {}", labels_string);
+                    }
+                }
+
                 let authors = BTreeSet::from_iter(authors);
                 let tags = BTreeSet::from_iter(tags);
                 let labels = BTreeSet::from_iter(labels);
                 let mut repo = load_repo(config)?;
-                if url_or_path.is_empty() {
-                    match add::<&Path>(
-                        &mut repo,
-                        None,
-                        None,
-                        title.clone(),
-                        authors.clone(),
-                        tags.clone(),
-                        labels.clone(),
-                    ) {
-                        Ok(paper) => {
-                            println!("Added paper {}", paper.id);
-                        }
-                        Err(err) => {
-                            warn!(%err, "Failed to add paper");
-                        }
-                    };
+
+                if let Some(true) = fetch {
+                    if let Some(url) = &url {
+                        file = Some(fetch_url(&url, file.as_deref())?);
+                    }
                 }
-                for url_or_path in url_or_path {
-                    match url_or_path {
-                        UrlOrPath::Url(url) => {
-                            let filename = url.path_segments().unwrap().last().unwrap().to_owned();
 
-                            if PathBuf::from(&filename).exists() {
-                                warn!(?filename, "Path already exists, try moving it");
-                            }
+                let url = url.map(|u| u.to_string());
 
-                            debug!(user_agent = APP_USER_AGENT, "Building http client");
-                            let client = match reqwest::blocking::Client::builder()
-                                .user_agent(APP_USER_AGENT)
-                                .build()
-                            {
-                                Ok(client) => client,
-                                Err(err) => {
-                                    warn!(%err,"Failed to create http client.");
-                                    continue;
-                                }
-                            };
-                            info!(%url, "Fetching");
-                            let mut res = match client
-                                .get(url.clone())
-                                .send()
-                                .expect("Failed to get url")
-                                .error_for_status()
-                            {
-                                Ok(res) => res,
-                                Err(err) => {
-                                    warn!(%err, %url, "Failed to get resource.");
-                                    continue;
-                                }
-                            };
-                            let headers = res.headers();
-                            if let Some(content_type) = headers.get(http::header::CONTENT_TYPE) {
-                                if content_type != "application/pdf" {
-                                    warn!("File fetched was not a pdf, perhaps it needs authorisation?")
-                                }
-                            }
-
-                            let mut file = match File::create(&filename) {
-                                Ok(file) => file,
-                                Err(err) => {
-                                    warn!(%err, filename,"Failed to create file");
-                                    continue;
-                                }
-                            };
-                            debug!(%url, filename, "Saving");
-                            match std::io::copy(&mut res, &mut file) {
-                                Ok(_) => {}
-                                Err(err) => {
-                                    warn!(%err, filename, "Failed to copy from http response to file");
-                                    continue;
-                                }
-                            };
-                            info!(%url, filename, "Fetched");
-                            match add(
-                                &mut repo,
-                                Some(&filename),
-                                Some(url.to_string()),
-                                title.clone(),
-                                authors.clone(),
-                                tags.clone(),
-                                labels.clone(),
-                            ) {
-                                Ok(paper) => {
-                                    println!("Added paper {} from {}", paper.id, url);
-                                }
-                                Err(err) => {
-                                    warn!(%err, %url, filename,"Failed to add paper");
-                                    error!("Failed to add paper from URL {}: {}", url, err);
-                                    continue;
-                                }
-                            }
-                        }
-                        UrlOrPath::Path(path) => {
-                            match add(
-                                &mut repo,
-                                Some(&path),
-                                None,
-                                title.clone(),
-                                authors.clone(),
-                                tags.clone(),
-                                labels.clone(),
-                            ) {
-                                Ok(paper) => {
-                                    println!(
-                                        "Added paper {} from {}",
-                                        paper.id,
-                                        path.to_string_lossy()
-                                    );
-                                }
-                                Err(err) => {
-                                    warn!(%err, ?path, "Failed to add paper");
-                                    error!("Failed to add paper from file {:?}: {}", path, err);
-                                    continue;
-                                }
-                            }
-                        }
+                match add(
+                    &mut repo,
+                    file,
+                    url,
+                    title.clone(),
+                    authors.clone(),
+                    tags.clone(),
+                    labels.clone(),
+                ) {
+                    Ok(paper) => {
+                        println!("Added paper {}", paper.id);
+                    }
+                    Err(err) => {
+                        warn!(%err, "Failed to add paper");
+                        error!("Failed to add paper: {}", err);
                     }
                 }
             }
@@ -681,6 +668,68 @@ impl LabelsCommands {
         }
         Ok(())
     }
+}
+
+/// Fetch a url to a local file, returning the path to the fetch file.
+fn fetch_url(url: &Url, path: Option<&Path>) -> anyhow::Result<PathBuf> {
+    let filename = if let Some(path) = path {
+        path.to_owned()
+    } else {
+        PathBuf::from(url.path_segments().unwrap().last().unwrap().to_owned())
+    };
+
+    if PathBuf::from(&filename).exists() {
+        warn!(?filename, "Path already exists, try moving it");
+    }
+
+    debug!(user_agent = APP_USER_AGENT, "Building http client");
+    let client = match reqwest::blocking::Client::builder()
+        .user_agent(APP_USER_AGENT)
+        .build()
+    {
+        Ok(client) => client,
+        Err(err) => {
+            warn!(%err,"Failed to create http client.");
+            return Err(err.into());
+        }
+    };
+    info!(%url, "Fetching");
+    let mut res = match client
+        .get(url.clone())
+        .send()
+        .expect("Failed to get url")
+        .error_for_status()
+    {
+        Ok(res) => res,
+        Err(err) => {
+            warn!(%err, %url, "Failed to get resource.");
+            return Err(err.into());
+        }
+    };
+    let headers = res.headers();
+    if let Some(content_type) = headers.get(http::header::CONTENT_TYPE) {
+        if content_type != "application/pdf" {
+            warn!("File fetched was not a pdf, perhaps it needs authorisation?")
+        }
+    }
+
+    let mut file = match File::create(&filename) {
+        Ok(file) => file,
+        Err(err) => {
+            warn!(%err, ?filename,"Failed to create file");
+            return Err(err.into());
+        }
+    };
+    debug!(%url, ?filename, "Saving");
+    match std::io::copy(&mut res, &mut file) {
+        Ok(_) => {}
+        Err(err) => {
+            warn!(%err, ?filename, "Failed to copy from http response to file");
+            return Err(err.into());
+        }
+    };
+    info!(%url, ?filename, "Fetched");
+    Ok(filename)
 }
 
 fn add<P: AsRef<Path>>(

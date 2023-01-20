@@ -14,7 +14,7 @@ fn test_help() {
 
             Commands:
               init         Initialise a new paper repository
-              add          Add paper documents from a url or local file
+              add          Add a paper to the repo
               update       Update metadata about an existing paper
               remove       Remove papers from being tracked
               authors      Manage authors associated with a paper

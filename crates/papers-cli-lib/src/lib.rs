@@ -20,3 +20,6 @@ pub mod table;
 
 /// Collection of error reporting utils.
 pub mod err;
+
+/// Interactive input handling.
+pub mod interactive;

@@ -110,13 +110,13 @@ impl Fixture {
         self.run_with_stdin(args, "")
     }
 
-    pub fn check_ok(&mut self, args: &str, out: Expect, err: Expect) {
+    pub fn check_ok_with_stdin(&mut self, args: &str, stdin: &str, out: Expect, err: Expect) {
         if self.do_init && !self.initialised {
             self.run("init");
             self.initialised = true;
         }
 
-        let output = self.run(args);
+        let output = self.run_with_stdin(args, stdin);
         let stdout = from_utf8(&output.stdout)
             .unwrap()
             .lines()
@@ -131,5 +131,9 @@ impl Fixture {
             .join("\n");
         out.assert_eq(&stdout);
         err.assert_eq(&stderr);
+    }
+
+    pub fn check_ok(&mut self, args: &str, out: Expect, err: Expect) {
+        self.check_ok_with_stdin(args, "", out, err)
     }
 }
