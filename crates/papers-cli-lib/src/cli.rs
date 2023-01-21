@@ -229,6 +229,7 @@ impl SubCommand {
                 mut tags,
                 mut labels,
             } => {
+                let mut repo = load_repo(config)?;
                 if atty::is(atty::Stream::Stdout) {
                     if let Some(url) = &url {
                         println!("Using url {}", url);
@@ -263,7 +264,13 @@ impl SubCommand {
 
                     if let Some(true) = fetch {
                         if let Some(url) = &url {
-                            file = Some(fetch_url(&url, &file.unwrap())?);
+                            if let Some(f) = &file {
+                                let name = f.file_name().unwrap();
+                                let path = repo.root().join(name);
+                                file = Some(fetch_url(&url, &path)?.file_name().unwrap().into());
+                            }else {
+                                anyhow::bail!("No file to downlod to");
+                            }
                         }
                     }
 
@@ -366,7 +373,6 @@ impl SubCommand {
                 let authors = BTreeSet::from_iter(authors);
                 let tags = BTreeSet::from_iter(tags);
                 let labels = BTreeSet::from_iter(labels);
-                let mut repo = load_repo(config)?;
 
                 let url = url.map(|u| u.to_string());
 
