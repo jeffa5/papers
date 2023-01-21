@@ -351,6 +351,16 @@ impl SubCommand {
                             file = Some(fetch_url(&url, &file.unwrap())?);
                         }
                     }
+
+                    if let Some(file) = &file {
+                        if title.is_none() {
+                            title = extract_title(file);
+                        }
+
+                        if authors.is_empty() {
+                            authors = Vec::from_iter(extract_authors(file));
+                        }
+                    }
                 }
 
                 let authors = BTreeSet::from_iter(authors);
@@ -897,8 +907,8 @@ fn add<P: AsRef<Path>>(
     repo: &mut Repo,
     file: Option<P>,
     url: Option<String>,
-    mut title: Option<String>,
-    mut authors: BTreeSet<Author>,
+    title: Option<String>,
+    authors: BTreeSet<Author>,
     tags: BTreeSet<Tag>,
     labels: BTreeSet<Label>,
 ) -> anyhow::Result<Paper> {
@@ -906,14 +916,6 @@ fn add<P: AsRef<Path>>(
         let file = file.as_ref();
         if !file.is_file() {
             anyhow::bail!("Path was not a file: {:?}", file);
-        }
-
-        if title.is_none() {
-            title = extract_title(file);
-        }
-
-        if authors.is_empty() {
-            authors = extract_authors(file);
         }
     }
 
