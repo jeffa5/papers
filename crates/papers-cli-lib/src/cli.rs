@@ -345,6 +345,12 @@ impl SubCommand {
                         println!("Using labels {}", labels_string);
                     }
                     labels.extend(default_labels.iter().cloned());
+                } else {
+                    if let Some(true) = fetch {
+                        if let Some(url) = &url {
+                            file = Some(fetch_url(&url, &file.unwrap())?);
+                        }
+                    }
                 }
 
                 let authors = BTreeSet::from_iter(authors);
