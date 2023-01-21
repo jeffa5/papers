@@ -267,7 +267,7 @@ impl SubCommand {
                             if let Some(f) = &file {
                                 let name = f.file_name().unwrap();
                                 let path = repo.root().join(name);
-                                file = Some(fetch_url(&url, &path)?.file_name().unwrap().into());
+                                file = Some(fetch_url(&url, &path)?);
                             }else {
                                 anyhow::bail!("No file to downlod to");
                             }
