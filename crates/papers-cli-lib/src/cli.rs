@@ -844,7 +844,7 @@ impl LabelsCommands {
 fn fetch_url(url: &Url, path: &Path) -> anyhow::Result<PathBuf> {
     let mut filename = path.to_owned();
 
-    if PathBuf::from(&filename).exists() {
+    if filename.exists() {
         warn!(?filename, "Path already exists, try moving it");
     }
 
