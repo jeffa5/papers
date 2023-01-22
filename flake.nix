@@ -13,6 +13,13 @@
     flake-utils.url = "github:numtide/flake-utils";
   };
 
+  nixConfig = {
+    extra-substituters = [
+      "https://papers.cachix.org"
+    ];
+    extra-trusted-public-keys = ["papers.cachix.org-1:XjQOqL1skswC0FgUn2xVE7Iu1fPr69ugIOdgKksu8eI="];
+  };
+
   outputs = {
     self,
     nixpkgs,
