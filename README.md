@@ -4,14 +4,31 @@ Papers is a paper repository management tool for ingesting, managing and searchi
 
 It is inspired by the [papr](https://github.com/daniel-e/papr) tool used in [this blog post](https://segv.dev/paper-reading-workflow/).
 
-## Create a repo
+## Installing
+
+With cargo:
+
+```sh
+cargo install --git https://github.com/jeffa5/papers
+papers
+```
+
+Or, with nix:
+
+```sh
+nix run github:jeffa5/papers
+```
+
+## Usage
+
+### Create a repo
 
 ```sh
 papers init
 # creates sqlite db file
 ```
 
-## Add
+### Add
 
 To add a file without fetching it run
 
@@ -19,7 +36,7 @@ To add a file without fetching it run
 papers add --tag '<tag>' <file|url>
 ```
 
-## Listing
+### Listing
 
 ```sh
 papers list
@@ -29,20 +46,20 @@ papers list --tags 'new'
 # list all that have the tag 'new'
 ```
 
-## Update some metadata about a paper
+### Update some metadata about a paper
 
 ```sh
 papers update <id>
 ```
 
-## Notes
+### Notes
 
 ```sh
 papers notes <id>
 # edit notes for the paper id from list
 ```
 
-## Open a paper file
+### Open a paper file
 
 ```sh
 papers open <id>
