@@ -580,9 +580,9 @@ impl SubCommand {
                     false,
                 )? {
                     if let Some(filename) = &paper.filename {
-                        let path = PathBuf::from(filename);
+                        let path = repo.root().join(filename);
                         if !path.is_file() {
-                            error!("{}: Path for paper ({:?}) wasn't a file", paper.id, path);
+                            error!("{}: Path for paper {:?} wasn't a file", paper.id, path);
                             continue;
                         }
                         // the file exists
