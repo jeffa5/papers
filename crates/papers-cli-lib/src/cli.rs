@@ -268,7 +268,7 @@ impl SubCommand {
                                 let name = f.file_name().unwrap();
                                 let path = repo.root().join(name);
                                 file = Some(fetch_url(&url, &path)?);
-                            }else {
+                            } else {
                                 anyhow::bail!("No file to downlod to");
                             }
                         }
@@ -303,7 +303,7 @@ impl SubCommand {
                                 .map(|a| a.to_string())
                                 .collect::<Vec<String>>()
                                 .join(",");
-                            authors = input_vec_default("Authors", &extracted_authors_str, ",");
+                            authors = input_vec_default("Authors", ",", &extracted_authors_str);
                         }
                     } else {
                         let authors_string = authors
