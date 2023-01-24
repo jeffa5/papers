@@ -108,6 +108,12 @@ pub enum SubCommand {
         #[clap(long)]
         title: Option<String>,
     },
+    /// Edit a paper's metadata in an editor.
+    Edit {
+        /// Id of the paper to edit.
+        #[clap()]
+        id: i32,
+    },
     /// Remove papers from being tracked.
     Remove {
         /// Ids of papers to remove, e.g. 1 1,2 1-3,5.
@@ -423,6 +429,26 @@ impl SubCommand {
                     repo.update(id, file.as_ref(), url.clone(), title.clone())?;
                     info!(id, "Updated paper");
                 }
+            }
+            Self::Edit {id} => {
+                let mut repo = load_repo(config)?;
+                let original_paper = repo.get_paper(id)?;
+
+                let mut file = tempfile::Builder::new()
+                    .prefix(&format!("papers-{id}-"))
+                    .suffix(".yaml")
+                    .rand_bytes(5)
+                    .tempfile()?;
+
+                serde_yaml::to_writer(&mut file, &original_paper)?;
+
+                edit(file.path())?;
+
+                let file = File::open(file.path())?;
+                debug!("Loading paper from reader");
+                let updated_paper = serde_yaml::from_reader(&file)?;
+
+                repo.update_paper(&original_paper, &updated_paper)?;
             }
             Self::Remove { ids, with_file } => {
                 let mut repo = load_repo(config)?;

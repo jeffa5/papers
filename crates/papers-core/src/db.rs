@@ -68,16 +68,16 @@ impl Db {
 
     pub fn insert_paper(&mut self, paper: NewPaper) -> anyhow::Result<Paper> {
         use schema::papers;
-        let paper = diesel::insert_into(papers::table)
-            .values(paper)
-            .get_result(&mut self.connection)?;
+        let query = diesel::insert_into(papers::table).values(paper);
+        debug!(query=%debug_query::<Sqlite, _>(&query), "Inserting paper");
+        let paper = query.get_result(&mut self.connection)?;
         Ok(paper)
     }
 
     pub fn update_paper(&mut self, paper: PaperUpdate) -> anyhow::Result<()> {
-        diesel::update(&paper)
-            .set(&paper)
-            .execute(&mut self.connection)?;
+        let query = diesel::update(&paper).set(&paper);
+        debug!(query=%debug_query::<Sqlite, _>(&query), "Updating paper");
+        query.execute(&mut self.connection)?;
         Ok(())
     }
 
@@ -107,6 +107,40 @@ impl Db {
         Ok(())
     }
 
+    pub fn replace_tags(
+        &mut self,
+        id: i32,
+        old_tags: Vec<String>,
+        new_tags: Vec<String>,
+    ) -> anyhow::Result<()> {
+        use schema::tags;
+        use schema::tags::{paper_id, tag};
+
+        self.connection
+            .transaction::<(), diesel::result::Error, _>(|connection| {
+                for t in old_tags {
+                    let query = diesel::delete(tags::table).filter(paper_id.eq(id).and(tag.eq(t)));
+                    debug!(query=%debug_query(&query), "Removing tags");
+                    query.execute(connection)?;
+                }
+                for t in new_tags {
+                    let query = diesel::insert_into(tags::table)
+                        .values(NewTag {
+                            paper_id: id,
+                            tag: t.to_owned(),
+                        })
+                        .on_conflict((paper_id, tag))
+                        .do_nothing();
+                    debug!(query=%debug_query::<Sqlite, _>(&query), "Inserting tags");
+                    query.execute(connection)?;
+                }
+
+                Ok(())
+            })?;
+
+        Ok(())
+    }
+
     pub fn remove_tags(&mut self, tags_to_remove: Vec<NewTag>) -> anyhow::Result<()> {
         use schema::tags;
         use schema::tags::{paper_id, tag};
@@ -133,6 +167,42 @@ impl Db {
             debug!(query=%debug_query::<Sqlite,_>(&query), "Inserting labels");
             query.execute(&mut self.connection)?;
         }
+        Ok(())
+    }
+
+    pub fn replace_labels(
+        &mut self,
+        id: i32,
+        old_labels: Vec<(String, String)>,
+        new_labels: Vec<(String, String)>,
+    ) -> anyhow::Result<()> {
+        use schema::labels;
+        use schema::labels::{label_key, paper_id};
+
+        self.connection
+            .transaction::<(), diesel::result::Error, _>(|connection| {
+                for l in old_labels {
+                    let query = diesel::delete(labels::table)
+                        .filter(paper_id.eq(id).and(label_key.eq(l.0)));
+                    debug!(query=%debug_query(&query), "Removing labels");
+                    query.execute(connection)?;
+                }
+                for l in new_labels {
+                    let query = diesel::insert_into(labels::table)
+                        .values(NewLabel {
+                            paper_id: id,
+                            label_key: l.0,
+                            label_value: l.1,
+                        })
+                        .on_conflict((paper_id, label_key))
+                        .do_nothing();
+                    debug!(query=%debug_query::<Sqlite,_>(&query), "Inserting labels");
+                    query.execute(connection)?;
+                }
+
+                Ok(())
+            })?;
+
         Ok(())
     }
 
@@ -174,6 +244,41 @@ impl Db {
             debug!(query=%debug_query::<Sqlite, _>(&query), "Inserting authors");
             query.execute(&mut self.connection)?;
         }
+        Ok(())
+    }
+
+    pub fn replace_authors(
+        &mut self,
+        id: i32,
+        old_authors: Vec<String>,
+        new_authors: Vec<String>,
+    ) -> anyhow::Result<()> {
+        use schema::authors;
+        use schema::authors::{author, paper_id};
+
+        self.connection
+            .transaction::<(), diesel::result::Error, _>(|connection| {
+                for a in old_authors {
+                    let query =
+                        diesel::delete(authors::table).filter(paper_id.eq(id).and(author.eq(a)));
+                    debug!(query=%debug_query(&query), "Removing authors");
+                    query.execute(connection)?;
+                }
+                for a in new_authors {
+                    let query = diesel::insert_into(authors::table)
+                        .values(NewAuthor {
+                            paper_id: id,
+                            author: a,
+                        })
+                        .on_conflict((paper_id, author))
+                        .do_nothing();
+                    debug!(query=%debug_query::<Sqlite, _>(&query), "Inserting authors");
+                    query.execute(connection)?;
+                }
+
+                Ok(())
+            })?;
+
         Ok(())
     }
 
