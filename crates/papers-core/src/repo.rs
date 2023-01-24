@@ -260,7 +260,7 @@ impl Repo {
             notes: original_notes,
             deleted: original_deleted,
             created_at: original_created_at,
-            modified_at: _original_modified_at,
+            modified_at: original_modified_at,
         } = original;
 
         let Paper {
@@ -285,12 +285,16 @@ impl Repo {
             anyhow::bail!("Cannot currently update created at");
         }
 
+        if original_modified_at != updated_modified_at {
+            anyhow::bail!("Cannot currently update modified at");
+        }
+
         let paper_update = db::PaperUpdate {
             id: *id,
             url: Some(updated_url.clone()),
             filename: updated_filename.clone(),
             title: Some(updated_title.clone()),
-            modified_at: updated_modified_at.clone(),
+            modified_at: now_naive(),
         };
         self.db.update_paper(paper_update)?;
 
