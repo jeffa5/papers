@@ -585,6 +585,15 @@ impl SubCommand {
                             error!("{}: Path for paper {:?} wasn't a file", paper.id, path);
                             continue;
                         }
+
+                        let new_extension = if let Ok(Some(kind)) = infer::get_from_path(&path) {
+                            debug!(?path, ?kind, "Detected filetype");
+                            kind.extension()
+                        } else {
+                            debug!(?path, "Failed to detect filetype");
+                            path.extension().unwrap_or_default().to_str().unwrap()
+                        };
+
                         // the file exists
                         // make the new name and check that file doesn't exist
                         let new_name = strategies.iter().find_map(|s| s.rename(&paper).ok());
@@ -596,12 +605,9 @@ impl SubCommand {
                         };
 
                         let new_path = if let Some(parent) = path.parent() {
-                            parent
-                                .join(new_filename)
-                                .with_extension(path.extension().unwrap_or_default())
+                            parent.join(new_filename).with_extension(new_extension)
                         } else {
-                            PathBuf::from(new_filename)
-                                .with_extension(path.extension().unwrap_or_default())
+                            PathBuf::from(new_filename).with_extension(new_extension)
                         };
 
                         if new_path == path {
