@@ -16,6 +16,7 @@ fn test_help() {
               init          Initialise a new paper repository
               add           Add a paper to the repo
               update        Update metadata about an existing paper
+              edit          Edit a paper's metadata in an editor
               remove        Remove papers from being tracked
               authors       Manage authors associated with a paper
               tags          Manage tags associated with a paper
