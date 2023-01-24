@@ -430,7 +430,7 @@ impl SubCommand {
                     info!(id, "Updated paper");
                 }
             }
-            Self::Edit {id} => {
+            Self::Edit { id } => {
                 let mut repo = load_repo(config)?;
                 let original_paper = repo.get_paper(id)?;
 
@@ -557,11 +557,11 @@ impl SubCommand {
                     },
                 };
 
-                let paper = repo.get_paper(paper_id)?;
-                let dont_edit = "# Do not edit this metadata, write notes below.";
+                let original_paper = repo.get_paper(paper_id)?;
+                let comment_string = "# Edit fields above, as per `papers edit`\n# Write notes below the ---";
                 let content = format!(
-                    "---\n{}{dont_edit}\n---\n\n{}",
-                    serde_yaml::to_string(&paper).unwrap(),
+                    "---\n{}{comment_string}\n---\n\n{}",
+                    serde_yaml::to_string(&original_paper).unwrap(),
                     content
                 );
 
@@ -581,14 +581,21 @@ impl SubCommand {
                 let matter = Matter::<YAML>::new();
                 let result = matter.parse(&content);
 
+                let content = result.content;
                 if let Some(mut note) = note {
-                    note.content = result.content;
+                    note.content = content;
                     repo.update_note(note)?;
                 } else {
                     repo.insert_note(papers_core::db::NewNote {
                         paper_id,
-                        content: result.content,
+                        content,
                     })?;
+                }
+
+                if let Some(data) = &result.data {
+                    if let Ok(updated_paper) = data.deserialize() {
+                        repo.update_paper(&original_paper, &updated_paper)?;
+                    }
                 }
             }
             Self::RenameFiles {
