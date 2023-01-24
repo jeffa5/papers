@@ -12,7 +12,7 @@ use clap_complete::{generate_to, Generator, Shell};
 use gray_matter::{engine::YAML, Matter};
 use papers_core::{
     author::Author,
-    paper::Paper,
+    paper::{EditablePaperData, Paper, ReadOnlyPaperData},
     repo::{self, Repo},
     tag::Tag,
 };
@@ -434,21 +434,26 @@ impl SubCommand {
                 let mut repo = load_repo(config)?;
                 let original_paper = repo.get_paper(id)?;
 
+                let (original_editable, read_only) = original_paper.into_editable_and_read_only();
+                let data = generate_editable_and_read_only_string(&original_editable, &read_only)?;
+
                 let mut file = tempfile::Builder::new()
                     .prefix(&format!("papers-{id}-"))
                     .suffix(".yaml")
                     .rand_bytes(5)
                     .tempfile()?;
 
-                serde_yaml::to_writer(&mut file, &original_paper)?;
+                write!(file, "{}", data)?;
 
                 edit(file.path())?;
 
                 let file = File::open(file.path())?;
                 debug!("Loading paper from reader");
-                let updated_paper = serde_yaml::from_reader(&file)?;
+                let updated_paper: Paper = serde_yaml::from_reader(&file)?;
+                let (updated_editable, _) = updated_paper.into_editable_and_read_only();
 
-                repo.update_paper(&original_paper, &updated_paper)?;
+                repo.update_paper(read_only.id, &original_editable, &updated_editable)?;
+                println!("Updated paper {}", read_only.id);
             }
             Self::Remove { ids, with_file } => {
                 let mut repo = load_repo(config)?;
@@ -558,12 +563,12 @@ impl SubCommand {
                 };
 
                 let original_paper = repo.get_paper(paper_id)?;
-                let comment_string = "# Edit fields above, as per `papers edit`\n# Write notes below the ---";
-                let content = format!(
-                    "---\n{}{comment_string}\n---\n\n{}",
-                    serde_yaml::to_string(&original_paper).unwrap(),
-                    content
-                );
+                let (original_editable, read_only) = original_paper.into_editable_and_read_only();
+
+                let notes_comment = "# Write notes below the ---";
+                let frontmatter =
+                    generate_editable_and_read_only_string(&original_editable, &read_only)?;
+                let content = format!("---\n{frontmatter}\n{notes_comment}\n---\n\n{content}",);
 
                 let mut file = tempfile::Builder::new()
                     .prefix(&format!("papers-{paper_id}-"))
@@ -586,15 +591,13 @@ impl SubCommand {
                     note.content = content;
                     repo.update_note(note)?;
                 } else {
-                    repo.insert_note(papers_core::db::NewNote {
-                        paper_id,
-                        content,
-                    })?;
+                    repo.insert_note(papers_core::db::NewNote { paper_id, content })?;
                 }
 
                 if let Some(data) = &result.data {
-                    if let Ok(updated_paper) = data.deserialize() {
-                        repo.update_paper(&original_paper, &updated_paper)?;
+                    if let Ok(updated_paper) = data.deserialize::<Paper>() {
+                        let (updated_editable, _) = updated_paper.into_editable_and_read_only();
+                        repo.update_paper(read_only.id, &original_editable, &updated_editable)?;
                     }
                 }
             }
@@ -1061,6 +1064,19 @@ where
         outdir,   // We need to specify where to write to
     )?;
     Ok(path)
+}
+
+fn generate_editable_and_read_only_string(
+    editable: &EditablePaperData,
+    read_only: &ReadOnlyPaperData,
+) -> anyhow::Result<String> {
+    let editable_frontmatter = serde_yaml::to_string(&editable)?;
+    let read_only_frontmatter = serde_yaml::to_string(&read_only)?;
+    let editable_comment = "# These fields are editable";
+    let read_only_comment = "# These fields are not editable";
+    Ok(format!(
+        "{editable_comment}\n{editable_frontmatter}\n{read_only_comment}\n{read_only_frontmatter}",
+    ))
 }
 
 #[test]

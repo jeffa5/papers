@@ -8,6 +8,7 @@ use tracing::{debug, trace};
 use crate::author::Author;
 use crate::db;
 use crate::label::Label;
+use crate::paper::EditablePaperData;
 use crate::tag::Tag;
 use crate::{db::Db, paper::Paper};
 
@@ -240,57 +241,32 @@ impl Repo {
         Ok(())
     }
 
-    pub fn update_paper(&mut self, original: &Paper, updated: &Paper) -> anyhow::Result<()> {
-        if original.id != updated.id {
-            anyhow::bail!(
-                "ids were not equal, expected {} but found {}",
-                original.id,
-                updated.id
-            );
-        }
-
-        let Paper {
-            id: _,
+    pub fn update_paper(
+        &mut self,
+        id: i32,
+        original: &EditablePaperData,
+        updated: &EditablePaperData,
+    ) -> anyhow::Result<()> {
+        let EditablePaperData {
             url: _original_url,
             filename: _original_filename,
             title: _original_title,
             tags: original_tags,
             labels: original_labels,
             authors: original_authors,
-            notes: original_notes,
-            deleted: original_deleted,
-            created_at: original_created_at,
-            modified_at: original_modified_at,
         } = original;
 
-        let Paper {
-            id,
+        let EditablePaperData {
             url: updated_url,
             filename: updated_filename,
             title: updated_title,
             tags: updated_tags,
             labels: updated_labels,
             authors: updated_authors,
-            notes: updated_notes,
-            deleted: updated_deleted,
-            created_at: updated_created_at,
-            modified_at: updated_modified_at,
         } = updated;
 
-        if original_deleted != updated_deleted {
-            anyhow::bail!("Cannot delete from edit");
-        }
-
-        if original_created_at != updated_created_at {
-            anyhow::bail!("Cannot currently update created at");
-        }
-
-        if original_modified_at != updated_modified_at {
-            anyhow::bail!("Cannot currently update modified at");
-        }
-
         let paper_update = db::PaperUpdate {
-            id: *id,
+            id,
             url: Some(updated_url.clone()),
             filename: updated_filename.clone(),
             title: Some(updated_title.clone()),
@@ -300,7 +276,7 @@ impl Repo {
 
         if original_tags != updated_tags {
             self.db.replace_tags(
-                *id,
+                id,
                 original_tags.iter().map(|t| t.key().to_owned()).collect(),
                 updated_tags.iter().map(|t| t.key().to_owned()).collect(),
             )?;
@@ -308,7 +284,7 @@ impl Repo {
 
         if original_labels != updated_labels {
             self.db.replace_labels(
-                *id,
+                id,
                 original_labels
                     .iter()
                     .map(|l| (l.key().to_owned(), l.value().to_owned()))
@@ -322,38 +298,10 @@ impl Repo {
 
         if original_authors != updated_authors {
             self.db.replace_authors(
-                *id,
+                id,
                 original_authors.iter().map(|a| a.to_string()).collect(),
                 updated_authors.iter().map(|a| a.to_string()).collect(),
             )?;
-        }
-
-        match (original_notes, updated_notes) {
-            (None, None) => {}
-            (None, Some(content)) => {
-                self.db.insert_note(db::NewNote {
-                    paper_id: *id,
-                    content: content.to_owned(),
-                })?;
-            }
-            (Some(_), None) => {
-                let note = self.db.get_note(*id)?.unwrap();
-                self.db.update_note(db::Note {
-                    id: note.id,
-                    paper_id: *id,
-                    content: "".to_owned(),
-                })?;
-            }
-            (Some(original_content), Some(updated_content)) => {
-                if original_content != updated_content {
-                    let note = self.db.get_note(*id)?.unwrap();
-                    self.db.update_note(db::Note {
-                        id: note.id,
-                        paper_id: *id,
-                        content: updated_content.to_owned(),
-                    })?;
-                }
-            }
         }
 
         Ok(())
