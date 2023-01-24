@@ -9,7 +9,7 @@ pub enum Strategy {
     Id,
 }
 
-const PROHIBITED_CHARS: &[char] = &['/', '\\', '?', '%', '*', ':', '|', '"', '<', '>'];
+const PROHIBITED_CHARS: &[char] = &['/', '\\', '?', '%', '*', ':', '|', '"', '<', '>', '.'];
 
 impl Strategy {
     /// Rename a file using the current strategy.
