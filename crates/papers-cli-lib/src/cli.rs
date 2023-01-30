@@ -251,7 +251,7 @@ impl SubCommand {
                         }
                     } else {
                         if let Some(url) = &url {
-                            fetch = Some(input_bool(&format!("Fetch {}", url), false));
+                            fetch = Some(input_bool(&format!("Fetch {}", url), true));
                         }
                     }
 
