@@ -23,7 +23,7 @@ fn test_help() {
               -a, --author <author>              Authors to associate with these files
               -t, --tag <tag>                    Tags to associate with these files
               -l, --label <label>                Labels to associate with these files. Labels take the form `key=value`
-              -h, --help                         Print help information"#]],
+              -h, --help                         Print help"#]],
         expect![""],
     );
 }

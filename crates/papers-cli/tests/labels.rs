@@ -21,7 +21,7 @@ fn test_help() {
               -c, --config-file <CONFIG_FILE>    Config file path to load
                   --default-repo <DEFAULT_REPO>  Default repo to use if not found in parents of current directory
                   --db-filename <DB_FILENAME>    Filename for the database
-              -h, --help                         Print help information"#]],
+              -h, --help                         Print help"#]],
         expect![""],
     );
 }

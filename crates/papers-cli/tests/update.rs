@@ -23,7 +23,7 @@ fn test_help() {
               -f, --file <FILE>                  File to add
                   --db-filename <DB_FILENAME>    Filename for the database
                   --title <TITLE>                Title of the file
-              -h, --help                         Print help information"#]],
+              -h, --help                         Print help"#]],
         expect![""],
     );
 }

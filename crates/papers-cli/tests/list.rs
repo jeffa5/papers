@@ -55,7 +55,7 @@ fn test_help() {
                       - yaml:  Yaml format
 
               -h, --help
-                      Print help information (use `-h` for a summary)"#]],
+                      Print help (see a summary with '-h')"#]],
         expect![""],
     );
 }
