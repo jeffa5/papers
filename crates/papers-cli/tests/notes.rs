@@ -10,10 +10,10 @@ fn test_help() {
         expect![[r#"
             Manage notes associated with a paper
 
-            Usage: papers notes [OPTIONS] <PAPER_ID>
+            Usage: papers notes [OPTIONS] [PAPER_ID]
 
             Arguments:
-              <PAPER_ID>  Id of the paper to update notes for
+              [PAPER_ID]  Id of the paper to update notes for, fuzzy selected if not given
 
             Options:
               -c, --config-file <CONFIG_FILE>    Config file path to load

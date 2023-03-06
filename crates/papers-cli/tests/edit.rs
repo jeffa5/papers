@@ -10,10 +10,10 @@ fn test_help() {
         expect![[r#"
             Edit a paper's metadata in an editor
 
-            Usage: papers edit [OPTIONS] <ID>
+            Usage: papers edit [OPTIONS] [ID]
 
             Arguments:
-              <ID>  Id of the paper to edit
+              [ID]  Id of the paper to edit, fuzzy selected if not given
 
             Options:
               -c, --config-file <CONFIG_FILE>    Config file path to load

@@ -23,6 +23,7 @@ use papers_core::label::Label;
 
 use crate::{
     config::{Config, PathOrString},
+    fuzzy::select_paper,
     interactive::{input_bool, input_default, input_opt, input_vec, input_vec_default},
     table::Table,
 };
@@ -110,9 +111,9 @@ pub enum SubCommand {
     },
     /// Edit a paper's metadata in an editor.
     Edit {
-        /// Id of the paper to edit.
+        /// Id of the paper to edit, fuzzy selected if not given.
         #[clap()]
-        id: i32,
+        id: Option<i32>,
     },
     /// Remove papers from being tracked.
     Remove {
@@ -178,9 +179,9 @@ pub enum SubCommand {
     },
     /// Manage notes associated with a paper.
     Notes {
-        /// Id of the paper to update notes for.
+        /// Id of the paper to update notes for, fuzzy selected if not given.
         #[clap()]
-        paper_id: i32,
+        paper_id: Option<i32>,
         // TODO: create another nested subcommand for show, edit, ..
     },
     /// Automatically rename files to match their entry in the database.
@@ -195,9 +196,9 @@ pub enum SubCommand {
     },
     /// Open the file for the given paper.
     Open {
-        /// Id of the paper to open.
+        /// Id of the paper to open, fuzzy selected if not given.
         #[clap()]
-        paper_id: i32,
+        paper_id: Option<i32>,
     },
     /// Generate cli completion files.
     Completions {
@@ -432,6 +433,29 @@ impl SubCommand {
             }
             Self::Edit { id } => {
                 let mut repo = load_repo(config)?;
+                let id = match id {
+                    Some(id) => id,
+                    None => {
+                        let all_papers = repo
+                            .list(
+                                Vec::new(),
+                                None,
+                                None,
+                                Vec::new(),
+                                Vec::new(),
+                                Vec::new(),
+                                false,
+                            )
+                            .unwrap_or_default();
+
+                        match select_paper(all_papers) {
+                            Some(p) => p.id,
+                            None => {
+                                anyhow::bail!("No paper selected");
+                            }
+                        }
+                    }
+                };
                 let original_paper = repo.get_paper(id)?;
 
                 let (original_editable, read_only) = original_paper.into_editable_and_read_only();
@@ -541,6 +565,30 @@ impl SubCommand {
             }
             Self::Notes { paper_id } => {
                 let mut repo = load_repo(config)?;
+                let paper_id = match paper_id {
+                    Some(id) => id,
+                    None => {
+                        let all_papers = repo
+                            .list(
+                                Vec::new(),
+                                None,
+                                None,
+                                Vec::new(),
+                                Vec::new(),
+                                Vec::new(),
+                                false,
+                            )
+                            .unwrap_or_default();
+
+                        match select_paper(all_papers) {
+                            Some(p) => p.id,
+                            None => {
+                                anyhow::bail!("No paper selected");
+                            }
+                        }
+                    }
+                };
+
                 let note = repo.get_note(paper_id)?;
 
                 let content = match &note {
@@ -676,6 +724,31 @@ impl SubCommand {
             Self::Open { paper_id } => {
                 let mut repo = load_repo(config)?;
                 let root = repo.root().to_owned();
+
+                let paper_id = match paper_id {
+                    Some(id) => id,
+                    None => {
+                        let all_papers = repo
+                            .list(
+                                Vec::new(),
+                                None,
+                                None,
+                                Vec::new(),
+                                Vec::new(),
+                                Vec::new(),
+                                false,
+                            )
+                            .unwrap_or_default();
+
+                        match select_paper(all_papers) {
+                            Some(p) => p.id,
+                            None => {
+                                anyhow::bail!("No paper selected");
+                            }
+                        }
+                    }
+                };
+
                 let paper = repo.get_paper(paper_id)?;
                 if let Some(filename) = &paper.filename {
                     let path = root.join(filename);

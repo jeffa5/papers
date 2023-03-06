@@ -26,3 +26,6 @@ pub mod interactive;
 
 /// Rename files to match db entries.
 pub mod rename_files;
+
+/// Fuzzy searching.
+pub mod fuzzy;

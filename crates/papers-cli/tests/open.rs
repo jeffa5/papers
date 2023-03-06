@@ -10,10 +10,10 @@ fn test_help() {
         expect![[r#"
             Open the file for the given paper
 
-            Usage: papers open [OPTIONS] <PAPER_ID>
+            Usage: papers open [OPTIONS] [PAPER_ID]
 
             Arguments:
-              <PAPER_ID>  Id of the paper to open
+              [PAPER_ID]  Id of the paper to open, fuzzy selected if not given
 
             Options:
               -c, --config-file <CONFIG_FILE>    Config file path to load
