@@ -611,7 +611,8 @@ impl SubCommand {
                 };
 
                 let original_paper = repo.get_paper(paper_id)?;
-                let (original_editable, read_only) = original_paper.into_editable_and_read_only();
+                let (original_editable, mut read_only) = original_paper.into_editable_and_read_only();
+                read_only.notes = None;
 
                 let notes_comment = "# Write notes below the ---";
                 let frontmatter =
