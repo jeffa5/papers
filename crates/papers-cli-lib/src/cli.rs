@@ -16,6 +16,7 @@ use papers_core::{
     repo::{self, Repo},
     tag::Tag,
 };
+use pdf::file::FileOptions;
 use reqwest::Url;
 use tracing::{debug, info, warn};
 
@@ -611,7 +612,8 @@ impl SubCommand {
                 };
 
                 let original_paper = repo.get_paper(paper_id)?;
-                let (original_editable, mut read_only) = original_paper.into_editable_and_read_only();
+                let (original_editable, mut read_only) =
+                    original_paper.into_editable_and_read_only();
                 read_only.notes = None;
 
                 let notes_comment = "# Write notes below the ---";
@@ -1048,7 +1050,7 @@ fn add<P: AsRef<Path>>(
 }
 
 fn extract_title(file: &Path) -> Option<String> {
-    if let Ok(pdf_file) = pdf::file::File::<Vec<u8>>::open(file) {
+    if let Ok(pdf_file) = FileOptions::cached().open(file) {
         debug!(?file, "Loaded pdf file");
         if let Some(info) = pdf_file.trailer.info_dict.as_ref() {
             debug!(?file, ?info, "Found the info dict");
@@ -1057,7 +1059,7 @@ fn extract_title(file: &Path) -> Option<String> {
                 debug!(?file, "Found title");
                 if let Ok(found_title) = found_title
                     .as_string()
-                    .map(|ft| ft.as_str().unwrap_or_default().into_owned())
+                    .map(|ft| ft.to_string().unwrap_or_default())
                 {
                     if !found_title.is_empty() {
                         debug!(?file, title = found_title, "Setting auto title");
@@ -1072,7 +1074,7 @@ fn extract_title(file: &Path) -> Option<String> {
 }
 
 fn extract_authors(file: &Path) -> BTreeSet<Author> {
-    match pdf::file::File::<Vec<u8>>::open(file) {
+    match FileOptions::cached().open(file) {
         Ok(pdf_file) => {
             debug!(?file, "Loaded pdf file");
             if let Some(info) = pdf_file.trailer.info_dict.as_ref() {
@@ -1080,7 +1082,7 @@ fn extract_authors(file: &Path) -> BTreeSet<Author> {
                 // try and extract the authors
                 if let Some(found_authors) = info.get("Author") {
                     debug!(?file, ?found_authors, "Found authors");
-                    match found_authors.as_string().and_then(|ft| ft.as_str()) {
+                    match found_authors.as_string().and_then(|ft| ft.to_string()) {
                         Ok(found_authors) => {
                             if !found_authors.is_empty() {
                                 debug!(?file, ?found_authors, "Setting auto authors");
