@@ -12,7 +12,7 @@ use clap_complete::{generate_to, Generator, Shell};
 use gray_matter::{engine::YAML, Matter};
 use papers_core::{
     author::Author,
-    paper::{EditablePaperData, Paper, ReadOnlyPaperData},
+    paper::{EditablePaperData, ExportPaperData, Paper, ReadOnlyPaperData},
     repo::{self, Repo},
     tag::Tag,
 };
@@ -218,6 +218,8 @@ pub enum SubCommand {
         #[clap()]
         file: FileOrStdin,
     },
+    /// Export the sqlite database to individual markdown files per paper.
+    ExportToFiles {},
 }
 
 impl SubCommand {
@@ -784,6 +786,41 @@ impl SubCommand {
                     info!(id, "Added paper");
                 }
             }
+            Self::ExportToFiles {} => {
+                let mut repo = load_repo(config)?;
+                let all_papers = repo
+                    .list(
+                        Vec::new(),
+                        None,
+                        None,
+                        Vec::new(),
+                        Vec::new(),
+                        Vec::new(),
+                        false,
+                    )
+                    .unwrap_or_default();
+                for paper in all_papers {
+                    let paper_filename = paper
+                        .title
+                        .clone()
+                        .unwrap_or_else(|| format!("paper-{}", paper.id));
+                    let paper_path = repo.root().join(paper_filename).with_extension("md");
+                    if paper_path.exists() {
+                        debug!(?paper_path, "Skipping writing db contents out");
+                        continue;
+                    }
+                    debug!(?paper_path, "Writing db contents out");
+                    let paper_id = paper.id;
+                    let export_data = paper.into_export_data();
+
+                    let frontmatter = generate_exported_data_string(&export_data)?;
+                    let note = repo.get_note(paper_id)?;
+                    let note_content = note.map(|n| n.content).unwrap_or_default();
+                    let content = format!("---\n{frontmatter}\n---\n\n{note_content}",);
+                    let mut file = File::create(paper_path)?;
+                    write!(file, "{}", content)?;
+                }
+            }
         }
         Ok(())
     }
@@ -1140,6 +1177,11 @@ where
         outdir,   // We need to specify where to write to
     )?;
     Ok(path)
+}
+
+fn generate_exported_data_string(data: &ExportPaperData) -> anyhow::Result<String> {
+    let export_frontmatter = serde_yaml::to_string(&data)?.trim().to_owned();
+    Ok(export_frontmatter)
 }
 
 fn generate_editable_and_read_only_string(

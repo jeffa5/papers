@@ -51,6 +51,32 @@ impl Paper {
             },
         )
     }
+
+    pub fn into_export_data(self) -> ExportPaperData {
+        let Paper {
+            id: _,
+            url,
+            filename,
+            title,
+            tags,
+            labels,
+            authors,
+            notes: _,
+            deleted: _,
+            created_at,
+            modified_at,
+        } = self;
+        ExportPaperData {
+            url,
+            filename,
+            title,
+            tags,
+            labels,
+            authors,
+            created_at,
+            modified_at,
+        }
+    }
 }
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
@@ -61,6 +87,18 @@ pub struct EditablePaperData {
     pub tags: BTreeSet<Tag>,
     pub labels: BTreeSet<Label>,
     pub authors: BTreeSet<Author>,
+}
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+pub struct ExportPaperData {
+    pub url: Option<String>,
+    pub filename: Option<String>,
+    pub title: Option<String>,
+    pub tags: BTreeSet<Tag>,
+    pub labels: BTreeSet<Label>,
+    pub authors: BTreeSet<Author>,
+    pub created_at: chrono::NaiveDateTime,
+    pub modified_at: chrono::NaiveDateTime,
 }
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
