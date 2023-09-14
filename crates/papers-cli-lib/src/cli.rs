@@ -388,9 +388,13 @@ impl SubCommand {
 
                         // old exists, new doesn't exist, do the rename
                         if !dry_run {
-                            rename(&path, &new_path).unwrap();
                             println!("Renaming {path:?} to {new_path:?}");
+                            rename(&path, &new_path).unwrap();
                             repo.update(&paper, Some(&new_path)).unwrap();
+                            let paper_path = repo.get_path(&paper);
+                            let new_paper_path = new_path.with_extension("md");
+                            println!("Renaming {paper_path:?} to {new_paper_path:?}");
+                            rename(&paper_path, new_paper_path).unwrap();
                         }
                         println!("Renamed {:?} to {:?}", path, new_path);
                     } else {
