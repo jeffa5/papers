@@ -66,7 +66,6 @@ impl Fixture {
 
     pub fn config(&self) -> Config {
         Config {
-            db_filename: "test.db".into(),
             default_repo: self.root.path().to_owned(),
             notes_template: PathOrString::default(),
             paper_defaults: PaperDefaults::default(),
