@@ -1,6 +1,6 @@
 use std::{
     collections::BTreeSet,
-    fs::{rename, File},
+    fs::{read_dir, rename, File},
     io::{stdin, stdout},
     path::{Path, PathBuf},
 };
@@ -132,6 +132,13 @@ pub enum SubCommand {
         /// File to import from, or '-' for stdin.
         #[clap()]
         file: FileOrStdin,
+    },
+
+    /// Check consistency of things in the repo.
+    Doctor {
+        /// Try and fix the problems
+        #[clap(long)]
+        fix: bool,
     },
 }
 
@@ -451,6 +458,37 @@ impl SubCommand {
                 for paper in papers {
                     repo.import(paper)?;
                     info!("Added paper");
+                }
+            }
+            Self::Doctor { fix } => {
+                let repo = load_repo(config)?;
+                let root = repo.root();
+                let entries = read_dir(&root)?;
+                for entry in entries {
+                    let entry = entry?;
+                    let path = entry.path();
+                    if path.extension().and_then(|e| e.to_str()) == Some("md") {
+                        let paper = repo.get_paper(&path)?;
+                        let expected_path = repo.get_path(&paper);
+                        let current_path = path.strip_prefix(&root).unwrap();
+                        debug!(?expected_path, ?current_path, "Checking paper path");
+                        // check that the paper notes are at the right location
+                        if expected_path != current_path {
+                            warn!(?current_path, ?expected_path, "Paper notes at wrong path");
+                            if fix {
+                                info!(?current_path, ?expected_path, "Moving paper notes");
+                                rename(root.join(current_path), root.join(expected_path))?;
+                            }
+                        }
+
+                        // check that the paper's file exists
+                        if let Some(filename) = paper.filename {
+                            let abs_filename = root.join(&filename);
+                            if !abs_filename.is_file() {
+                                warn!(?current_path, ?filename, "File is not at the named location");
+                            }
+                        }
+                    }
                 }
             }
         }
