@@ -1,6 +1,6 @@
 use std::{collections::BTreeSet, fmt::Display, time::Duration};
 
-use papers_core::{author::Author, label::Label, paper::ExportPaperData, tag::Tag};
+use papers_core::{author::Author, label::Label, paper::Paper, tag::Tag};
 use serde::Serialize;
 
 /// Paper format for display in a table.
@@ -40,7 +40,7 @@ fn display_duration(dur: &Duration) -> String {
 
 impl TablePaper {
     /// Convert a paper to its table view counterpart.
-    pub fn from_paper(p: ExportPaperData, now: chrono::NaiveDateTime) -> Self {
+    pub fn from_paper(p: Paper, now: chrono::NaiveDateTime) -> Self {
         let age = now - p.created_at;
         let age = match age.to_std() {
             Ok(duration) => duration,
@@ -98,8 +98,8 @@ fn now_naive() -> chrono::NaiveDateTime {
     chrono::NaiveDateTime::from_timestamp_opt(millis, 0).unwrap()
 }
 
-impl From<Vec<ExportPaperData>> for Table {
-    fn from(v: Vec<ExportPaperData>) -> Self {
+impl From<Vec<Paper>> for Table {
+    fn from(v: Vec<Paper>) -> Self {
         let now = now_naive();
         let papers = v
             .into_iter()

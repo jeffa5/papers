@@ -1,20 +1,20 @@
-use papers_core::paper::ExportPaperData;
+use papers_core::paper::Paper;
 use skim::prelude::*;
 use std::sync::Arc;
 
-struct FuzzyPaper(ExportPaperData);
+struct FuzzyPaper(Paper);
 
 /// Select a paper by fuzzy searching them.
-pub fn select_paper(papers: Vec<ExportPaperData>) -> Option<ExportPaperData> {
+pub fn select_paper(papers: Vec<Paper>) -> Option<Paper> {
     select_papers_inner(papers, false).first().cloned()
 }
 
 /// Select multiple papers by fuzzy searching them.
-pub fn select_papers(papers: Vec<ExportPaperData>) -> Vec<ExportPaperData> {
+pub fn select_papers(papers: Vec<Paper>) -> Vec<Paper> {
     select_papers_inner(papers, true)
 }
 
-fn select_papers_inner(papers: Vec<ExportPaperData>, multi: bool) -> Vec<ExportPaperData> {
+fn select_papers_inner(papers: Vec<Paper>, multi: bool) -> Vec<Paper> {
     // lines skim adds
     let ui_lines = 2;
     let height = papers.len() + ui_lines;

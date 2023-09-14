@@ -7,7 +7,7 @@ use std::{
 
 use clap::{CommandFactory, ValueEnum};
 use clap_complete::{generate_to, Generator, Shell};
-use papers_core::{author::Author, paper::ExportPaperData, repo::Repo, tag::Tag};
+use papers_core::{author::Author, paper::Paper, repo::Repo, tag::Tag};
 use pdf::file::FileOptions;
 use reqwest::Url;
 use tracing::{debug, info, warn};
@@ -434,12 +434,12 @@ impl SubCommand {
                 let papers = match file {
                     FileOrStdin::File(path) => {
                         let reader = File::open(path)?;
-                        let papers: Vec<ExportPaperData> = serde_json::from_reader(reader)?;
+                        let papers: Vec<Paper> = serde_json::from_reader(reader)?;
                         papers
                     }
                     FileOrStdin::Stdin => {
                         let reader = stdin();
-                        let papers: Vec<ExportPaperData> = serde_json::from_reader(reader)?;
+                        let papers: Vec<Paper> = serde_json::from_reader(reader)?;
                         papers
                     }
                 };
@@ -563,7 +563,7 @@ fn add<P: AsRef<Path>>(
     authors: BTreeSet<Author>,
     tags: BTreeSet<Tag>,
     labels: BTreeSet<Label>,
-) -> anyhow::Result<ExportPaperData> {
+) -> anyhow::Result<Paper> {
     if let Some(file) = file.as_ref() {
         let file = file.as_ref();
         if !file.is_file() {

@@ -1,4 +1,4 @@
-use papers_core::paper::ExportPaperData;
+use papers_core::paper::Paper;
 
 /// Strategy to rename files.
 #[derive(Debug, Clone, clap::ValueEnum)]
@@ -11,7 +11,7 @@ const PROHIBITED_CHARS: &[char] = &['/', '\\', '?', '%', '*', ':', '|', '"', '<'
 
 impl Strategy {
     /// Rename a file using the current strategy.
-    pub fn rename(&self, paper: &ExportPaperData) -> anyhow::Result<String> {
+    pub fn rename(&self, paper: &Paper) -> anyhow::Result<String> {
         let name = match self {
             Self::Title => Ok(paper.title.to_owned()),
         };
@@ -26,7 +26,7 @@ mod tests {
 
     use super::*;
 
-    fn check(strategy: Strategy, paper: ExportPaperData, expected: Expect) {
+    fn check(strategy: Strategy, paper: Paper, expected: Expect) {
         let renamed = strategy.rename(&paper).unwrap();
         expected.assert_eq(&renamed);
     }
@@ -35,7 +35,7 @@ mod tests {
     fn test_with_spaces() {
         check(
             Strategy::Title,
-            ExportPaperData {
+            Paper {
                 title: "my long title with spaces".to_owned(),
                 ..Default::default()
             },
@@ -48,7 +48,7 @@ mod tests {
         // some chars shouldn't be allowed https://stackoverflow.com/a/4040068/7164655
         check(
             Strategy::Title,
-            ExportPaperData {
+            Paper {
                 title: "MLT: my |long<> title\" with/ spaces and * more?".to_owned(),
                 ..Default::default()
             },

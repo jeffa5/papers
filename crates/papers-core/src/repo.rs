@@ -8,7 +8,7 @@ use anyhow::Context;
 
 use crate::author::Author;
 use crate::label::Label;
-use crate::paper::ExportPaperData;
+use crate::paper::Paper;
 use crate::tag::Tag;
 
 fn now_naive() -> chrono::NaiveDateTime {
@@ -40,7 +40,7 @@ impl Repo {
         authors: BTreeSet<Author>,
         tags: BTreeSet<Tag>,
         labels: BTreeSet<Label>,
-    ) -> anyhow::Result<ExportPaperData> {
+    ) -> anyhow::Result<Paper> {
         let filename = if let Some(file) = file {
             let file = file.as_ref();
             let file = canonicalize(file).context("canonicalising the filename")?;
@@ -51,7 +51,7 @@ impl Repo {
         } else {
             None
         };
-        let paper = ExportPaperData {
+        let paper = Paper {
             title,
             url,
             filename,
@@ -66,11 +66,11 @@ impl Repo {
         Ok(paper)
     }
 
-    pub fn import(&mut self, paper: ExportPaperData) -> anyhow::Result<()> {
+    pub fn import(&mut self, paper: Paper) -> anyhow::Result<()> {
         self.write_paper(&paper, "")
     }
 
-    pub fn write_paper(&self, paper: &ExportPaperData, notes: &str) -> anyhow::Result<()> {
+    pub fn write_paper(&self, paper: &Paper, notes: &str) -> anyhow::Result<()> {
         let data_string = serde_yaml::to_string(&paper)?;
 
         let path = self.get_path(paper);
@@ -80,7 +80,7 @@ impl Repo {
         Ok(())
     }
 
-    pub fn update(&mut self, paper: &ExportPaperData, file: Option<&Path>) -> anyhow::Result<()> {
+    pub fn update(&mut self, paper: &Paper, file: Option<&Path>) -> anyhow::Result<()> {
         let filename = if let Some(file) = file {
             if !canonicalize(file)?
                 .parent()
@@ -114,7 +114,7 @@ impl Repo {
         match_authors: Vec<Author>,
         match_tags: Vec<Tag>,
         match_labels: Vec<Label>,
-    ) -> anyhow::Result<Vec<ExportPaperData>> {
+    ) -> anyhow::Result<Vec<Paper>> {
         let papers = self.all_papers();
         let mut filtered_papers = Vec::new();
         let match_title = match_title.map(|t| t.to_lowercase());
@@ -158,11 +158,11 @@ impl Repo {
         Ok(filtered_papers)
     }
 
-    pub fn get_path(&self, paper: &ExportPaperData) -> PathBuf {
+    pub fn get_path(&self, paper: &Paper) -> PathBuf {
         PathBuf::from(&paper.title).with_extension("md")
     }
 
-    pub fn all_papers(&self) -> Vec<ExportPaperData> {
+    pub fn all_papers(&self) -> Vec<Paper> {
         let mut papers = Vec::new();
         let entries = read_dir(&self.root);
         if let Ok(entries) = entries {
@@ -180,11 +180,11 @@ impl Repo {
         papers
     }
 
-    pub fn get_paper(&self, path: &Path) -> anyhow::Result<ExportPaperData> {
+    pub fn get_paper(&self, path: &Path) -> anyhow::Result<Paper> {
         self.get_paper_with_notes(path).map(|(d, _)| d)
     }
 
-    pub fn get_paper_with_notes(&self, path: &Path) -> anyhow::Result<(ExportPaperData, String)> {
+    pub fn get_paper_with_notes(&self, path: &Path) -> anyhow::Result<(Paper, String)> {
         let mut file_content = String::new();
         let path = if path.is_absolute() {
             path.to_owned()
@@ -196,7 +196,7 @@ impl Repo {
         let matter = Matter::<YAML>::new();
         let file_content = matter.parse(&file_content);
         if let Some(data) = file_content.data {
-            let paper = data.deserialize::<ExportPaperData>()?;
+            let paper = data.deserialize::<Paper>()?;
             Ok((paper, file_content.content))
         } else {
             anyhow::bail!("No content for file! Is there any frontmatter?")
