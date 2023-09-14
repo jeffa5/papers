@@ -11,6 +11,9 @@ use crate::label::Label;
 use crate::paper::Paper;
 use crate::tag::Tag;
 
+pub const PROHIBITED_PATH_CHARS: &[char] =
+    &['/', '\\', '?', '%', '*', ':', '|', '"', '<', '>', '.'];
+
 fn now_naive() -> chrono::NaiveDateTime {
     let n = chrono::Utc::now().naive_utc();
     let millis = n.timestamp();
@@ -163,7 +166,8 @@ impl Repo {
     }
 
     pub fn get_path(&self, paper: &Paper) -> PathBuf {
-        PathBuf::from(&paper.title).with_extension("md")
+        let title = paper.title.replace(PROHIBITED_PATH_CHARS, "");
+        PathBuf::from(&title).with_extension("md")
     }
 
     pub fn all_papers(&self) -> Vec<Paper> {

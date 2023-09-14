@@ -1,4 +1,4 @@
-use papers_core::paper::Paper;
+use papers_core::{paper::Paper, repo::PROHIBITED_PATH_CHARS};
 
 /// Strategy to rename files.
 #[derive(Debug, Clone, clap::ValueEnum)]
@@ -7,8 +7,6 @@ pub enum Strategy {
     Title,
 }
 
-const PROHIBITED_CHARS: &[char] = &['/', '\\', '?', '%', '*', ':', '|', '"', '<', '>', '.'];
-
 impl Strategy {
     /// Rename a file using the current strategy.
     pub fn rename(&self, paper: &Paper) -> anyhow::Result<String> {
@@ -16,7 +14,7 @@ impl Strategy {
             Self::Title => Ok(paper.title.to_owned()),
         };
 
-        name.map(|n| n.replace(PROHIBITED_CHARS, ""))
+        name.map(|n| n.replace(PROHIBITED_PATH_CHARS, ""))
     }
 }
 
