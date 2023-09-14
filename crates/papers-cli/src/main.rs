@@ -28,10 +28,6 @@ fn main() -> anyhow::Result<()> {
     let mut config = Config::load(&config_file)?;
     debug!(?config, ?config_file, "Loaded config file");
 
-    // override config values from cli
-    if let Some(db_filename) = options.db_filename {
-        config.db_filename = db_filename;
-    }
     if let Some(default_repo) = options.default_repo {
         config.default_repo = default_repo;
     }

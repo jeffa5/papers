@@ -41,10 +41,6 @@ impl Default for PathOrString {
 /// The config to be loaded.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
-    /// Filename that the database is stored at in the root.
-    #[serde(default = "papers_core::db::default_filename")]
-    pub db_filename: PathBuf,
-
     /// Directory of the default repo, if no db found in the parent directories.
     #[serde(default = "default_repo")]
     pub default_repo: PathBuf,

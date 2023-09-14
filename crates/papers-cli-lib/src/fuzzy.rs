@@ -1,20 +1,20 @@
-use papers_core::paper::Paper;
+use papers_core::paper::ExportPaperData;
 use skim::prelude::*;
 use std::sync::Arc;
 
-struct FuzzyPaper(Paper);
+struct FuzzyPaper(ExportPaperData);
 
 /// Select a paper by fuzzy searching them.
-pub fn select_paper(papers: Vec<Paper>) -> Option<Paper> {
+pub fn select_paper(papers: Vec<ExportPaperData>) -> Option<ExportPaperData> {
     select_papers_inner(papers, false).first().cloned()
 }
 
 /// Select multiple papers by fuzzy searching them.
-pub fn select_papers(papers: Vec<Paper>) -> Vec<Paper> {
+pub fn select_papers(papers: Vec<ExportPaperData>) -> Vec<ExportPaperData> {
     select_papers_inner(papers, true)
 }
 
-fn select_papers_inner(papers: Vec<Paper>, multi: bool) -> Vec<Paper> {
+fn select_papers_inner(papers: Vec<ExportPaperData>, multi: bool) -> Vec<ExportPaperData> {
     // lines skim adds
     let ui_lines = 2;
     let height = papers.len() + ui_lines;
@@ -56,8 +56,7 @@ fn select_papers_inner(papers: Vec<Paper>, multi: bool) -> Vec<Paper> {
 
 impl SkimItem for FuzzyPaper {
     fn text(&self) -> Cow<str> {
-        let id = self.0.id;
-        let title = self.0.title.as_ref().map(|s| s.clone()).unwrap_or_default();
+        let title = &self.0.title;
         let authors = self
             .0
             .authors
@@ -65,6 +64,6 @@ impl SkimItem for FuzzyPaper {
             .map(|a| a.to_string())
             .collect::<Vec<_>>()
             .join(", ");
-        format!("id:{} title:{:?} authors:{:?}", id, title, authors).into()
+        format!("title:{:?} authors:{:?}", title, authors).into()
     }
 }

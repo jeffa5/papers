@@ -69,7 +69,7 @@ impl Paper {
         ExportPaperData {
             url,
             filename,
-            title,
+            title: title.unwrap_or_default(),
             tags,
             labels,
             authors,
@@ -91,9 +91,9 @@ pub struct EditablePaperData {
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct ExportPaperData {
+    pub title: String,
     pub url: Option<String>,
     pub filename: Option<String>,
-    pub title: Option<String>,
     pub tags: BTreeSet<Tag>,
     pub labels: BTreeSet<Label>,
     pub authors: BTreeSet<Author>,

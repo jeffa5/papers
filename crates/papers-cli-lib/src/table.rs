@@ -1,19 +1,17 @@
 use std::{collections::BTreeSet, fmt::Display, time::Duration};
 
-use papers_core::{author::Author, label::Label, paper::Paper, tag::Tag};
+use papers_core::{author::Author, label::Label, paper::ExportPaperData, tag::Tag};
 use serde::Serialize;
 
 /// Paper format for display in a table.
 #[derive(Debug, Serialize)]
 pub struct TablePaper {
-    /// Id of the paper.
-    pub id: i32,
     /// Url the paper was fetched from.
     pub url: Option<String>,
     /// Local filename of the document.
     pub filename: Option<String>,
     /// Title of the document.
-    pub title: Option<String>,
+    pub title: String,
     /// Tags for this document.
     pub tags: BTreeSet<Tag>,
     /// Labels for this document.
@@ -42,14 +40,13 @@ fn display_duration(dur: &Duration) -> String {
 
 impl TablePaper {
     /// Convert a paper to its table view counterpart.
-    pub fn from_paper(p: Paper, now: chrono::NaiveDateTime) -> Self {
+    pub fn from_paper(p: ExportPaperData, now: chrono::NaiveDateTime) -> Self {
         let age = now - p.created_at;
         let age = match age.to_std() {
             Ok(duration) => duration,
             Err(_) => (-age).to_std().unwrap(),
         };
         Self {
-            id: p.id,
             url: p.url,
             filename: p.filename,
             title: p.title,
@@ -61,8 +58,7 @@ impl TablePaper {
     }
 
     fn to_row(&self) -> comfy_table::Row {
-        let id = self.id.to_string();
-        let title = self.title.iter().next().cloned().unwrap_or_default();
+        let title = self.title.clone();
         let tags = self
             .tags
             .iter()
@@ -83,7 +79,7 @@ impl TablePaper {
             .join(", ");
         let age = display_duration(&self.age);
 
-        let columns = vec![id, title, authors, tags, labels, age];
+        let columns = vec![title, authors, tags, labels, age];
 
         let mut row = comfy_table::Row::from(columns);
         row.max_height(1);
@@ -102,8 +98,8 @@ fn now_naive() -> chrono::NaiveDateTime {
     chrono::NaiveDateTime::from_timestamp_opt(millis, 0).unwrap()
 }
 
-impl From<Vec<Paper>> for Table {
-    fn from(v: Vec<Paper>) -> Self {
+impl From<Vec<ExportPaperData>> for Table {
+    fn from(v: Vec<ExportPaperData>) -> Self {
         let now = now_naive();
         let papers = v
             .into_iter()
@@ -115,7 +111,7 @@ impl From<Vec<Paper>> for Table {
 
 impl Table {
     fn header() -> comfy_table::Row {
-        comfy_table::Row::from(vec!["id", "title", "authors", "tags", "labels", "age"])
+        comfy_table::Row::from(vec!["title", "authors", "tags", "labels", "age"])
     }
 }
 

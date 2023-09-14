@@ -1583,6 +1583,7 @@ dependencies = [
  "expect-test",
  "gray_matter",
  "serde",
+ "serde_yaml",
  "tempfile",
  "tracing",
 ]

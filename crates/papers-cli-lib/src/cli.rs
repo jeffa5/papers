@@ -1,21 +1,13 @@
 use std::{
     collections::BTreeSet,
-    env::current_dir,
-    fs::{remove_file, rename, File},
-    io::{stdin, stdout, Read, Write},
+    fs::{rename, File},
+    io::{stdin, stdout},
     path::{Path, PathBuf},
-    process::Command,
 };
 
 use clap::{CommandFactory, ValueEnum};
 use clap_complete::{generate_to, Generator, Shell};
-use gray_matter::{engine::YAML, Matter};
-use papers_core::{
-    author::Author,
-    paper::{EditablePaperData, ExportPaperData, Paper, ReadOnlyPaperData},
-    repo::{self, Repo},
-    tag::Tag,
-};
+use papers_core::{author::Author, paper::ExportPaperData, repo::Repo, tag::Tag};
 use pdf::file::FileOptions;
 use reqwest::Url;
 use tracing::{debug, info, warn};
@@ -23,9 +15,9 @@ use tracing::{debug, info, warn};
 use papers_core::label::Label;
 
 use crate::{
-    config::{Config, PathOrString},
+    config::Config,
     fuzzy::select_paper,
-    interactive::{input_bool, input_default, input_opt, input_vec, input_vec_default},
+    interactive::{input, input_bool, input_default, input_opt, input_vec, input_vec_default},
     table::Table,
 };
 use crate::{error, rename_files};
@@ -44,10 +36,6 @@ pub struct Cli {
     #[clap(long, global = true)]
     pub default_repo: Option<PathBuf>,
 
-    /// Filename for the database.
-    #[clap(long, global = true)]
-    pub db_filename: Option<PathBuf>,
-
     /// Commands.
     #[clap(subcommand)]
     pub cmd: SubCommand,
@@ -56,12 +44,6 @@ pub struct Cli {
 /// Subcommands for the cli.
 #[derive(Debug, clap::Subcommand)]
 pub enum SubCommand {
-    /// Initialise a new paper repository.
-    Init {
-        /// Directory to initialise.
-        #[clap(default_value = ".")]
-        dir: PathBuf,
-    },
     /// Add a paper to the repo.
     Add {
         /// Url to fetch from.
@@ -92,64 +74,8 @@ pub enum SubCommand {
         #[clap(name = "label", long, short)]
         labels: Vec<Label>,
     },
-    /// Update metadata about an existing paper.
-    Update {
-        /// Ids of papers to update, e.g. 1 1,2 1-3,5.
-        #[clap()]
-        ids: Ids,
-
-        /// Url the paper was fetched from.
-        #[clap(long, short)]
-        url: Option<String>,
-
-        /// File to add.
-        #[clap(long, short)]
-        file: Option<PathBuf>,
-
-        /// Title of the file.
-        #[clap(long)]
-        title: Option<String>,
-    },
-    /// Edit a paper's metadata in an editor.
-    Edit {
-        /// Id of the paper to edit, fuzzy selected if not given.
-        #[clap()]
-        id: Option<i32>,
-    },
-    /// Remove papers from being tracked.
-    Remove {
-        /// Ids of papers to remove, e.g. 1 1,2 1-3,5.
-        #[clap()]
-        ids: Ids,
-
-        /// Also remove the paper file.
-        #[clap(long)]
-        with_file: bool,
-    },
-    /// Manage authors associated with a paper.
-    Authors {
-        /// Subcommands for managing authors.
-        #[clap(subcommand)]
-        subcommand: AuthorsCommands,
-    },
-    /// Manage tags associated with a paper.
-    Tags {
-        /// Subcommands for managing tags.
-        #[clap(subcommand)]
-        subcommand: TagsCommands,
-    },
-    /// Manage labels associated with a paper.
-    Labels {
-        /// Subcommands for managing labels.
-        #[clap(subcommand)]
-        subcommand: LabelsCommands,
-    },
     /// List the papers stored with this repo.
     List {
-        /// Paper ids to filter to, e.g. 1 1,2 1-3,5.
-        #[clap()]
-        ids: Option<Ids>,
-
         /// Filter down to papers that have filenames which match this (case-insensitive).
         #[clap(long, short)]
         file: Option<String>,
@@ -174,13 +100,6 @@ pub enum SubCommand {
         #[clap(long, short, value_enum, default_value_t)]
         output: OutputStyle,
     },
-    /// Manage notes associated with a paper.
-    Notes {
-        /// Id of the paper to update notes for, fuzzy selected if not given.
-        #[clap()]
-        paper_id: Option<i32>,
-        // TODO: create another nested subcommand for show, edit, ..
-    },
     /// Automatically rename files to match their entry in the database.
     RenameFiles {
         /// Strategy to use in renaming.
@@ -191,11 +110,11 @@ pub enum SubCommand {
         #[clap(long)]
         dry_run: bool,
     },
-    /// Open the file for the given paper.
+    /// Open the pdf file for the given paper.
     Open {
         /// Id of the paper to open, fuzzy selected if not given.
         #[clap()]
-        paper_id: Option<i32>,
+        path: Option<PathBuf>,
     },
     /// Generate cli completion files.
     Completions {
@@ -214,28 +133,23 @@ pub enum SubCommand {
         #[clap()]
         file: FileOrStdin,
     },
-    /// Export the sqlite database to individual markdown files per paper.
-    ExportToFiles {},
 }
 
 impl SubCommand {
     /// Execute a subcommand.
     pub fn execute(self, config: &Config) -> anyhow::Result<()> {
         match self {
-            Self::Init { dir } => {
-                Repo::init(&dir, &config.db_filename)?;
-                info!(?dir, "Initialised the directory");
-            }
             Self::Add {
                 mut url,
                 mut fetch,
                 mut file,
-                mut title,
+                title,
                 mut authors,
                 mut tags,
                 mut labels,
             } => {
                 let mut repo = load_repo(config)?;
+                let mut new_title;
                 if atty::is(atty::Stream::Stdout) {
                     if let Some(url) = &url {
                         println!("Using url {}", url);
@@ -280,8 +194,9 @@ impl SubCommand {
                         }
                     }
 
-                    if let Some(title) = &title {
+                    new_title = if let Some(title) = &title {
                         println!("Using title {}", title);
+                        title.clone()
                     } else {
                         let extracted_title = if let Some(file) = &file {
                             extract_title(file)
@@ -289,11 +204,11 @@ impl SubCommand {
                             None
                         };
                         if let Some(extracted_title) = extracted_title {
-                            title = Some(input_default("Title", &extracted_title));
+                            input_default("Title", &extracted_title)
                         } else {
-                            title = input_opt("Title");
+                            input("Title")
                         }
-                    }
+                    };
 
                     if authors.is_empty() {
                         let extracted_authors = if let Some(file) = &file {
@@ -364,10 +279,11 @@ impl SubCommand {
                             file = Some(fetch_url(&url, &file.unwrap())?);
                         }
                     }
+                    new_title = title.unwrap_or_default();
 
                     if let Some(file) = &file {
-                        if title.is_none() {
-                            title = extract_title(file);
+                        if new_title.is_empty() {
+                            new_title = extract_title(file).unwrap_or_default();
                         }
 
                         if authors.is_empty() {
@@ -386,13 +302,13 @@ impl SubCommand {
                     &mut repo,
                     file,
                     url,
-                    title.clone(),
+                    new_title,
                     authors.clone(),
                     tags.clone(),
                     labels.clone(),
                 ) {
                     Ok(paper) => {
-                        println!("Added paper {}", paper.id);
+                        println!("Added paper {}", paper.title);
                     }
                     Err(err) => {
                         warn!(%err, "Failed to add paper");
@@ -400,127 +316,7 @@ impl SubCommand {
                     }
                 }
             }
-            Self::Update {
-                ids,
-                url,
-                file,
-                title,
-            } => {
-                let mut repo = load_repo(config)?;
-                let url = if let Some(s) = url {
-                    if s.is_empty() {
-                        Some(None)
-                    } else {
-                        Some(Some(s))
-                    }
-                } else {
-                    None
-                };
-                let title = if let Some(s) = title {
-                    if s.is_empty() {
-                        Some(None)
-                    } else {
-                        Some(Some(s))
-                    }
-                } else {
-                    None
-                };
-                for id in ids.0 {
-                    repo.update(id, file.as_ref(), url.clone(), title.clone())?;
-                    info!(id, "Updated paper");
-                }
-            }
-            Self::Edit { id } => {
-                let mut repo = load_repo(config)?;
-                let id = match id {
-                    Some(id) => id,
-                    None => {
-                        let all_papers = repo
-                            .list(Vec::new(), None, None, Vec::new(), Vec::new(), Vec::new())
-                            .unwrap_or_default();
-
-                        match select_paper(all_papers) {
-                            Some(p) => p.id,
-                            None => {
-                                anyhow::bail!("No paper selected");
-                            }
-                        }
-                    }
-                };
-                let original_paper = repo.get_paper(id)?;
-
-                let (original_editable, read_only) = original_paper.into_editable_and_read_only();
-                let data = generate_editable_and_read_only_string(&original_editable, &read_only)?;
-
-                let mut file = tempfile::Builder::new()
-                    .prefix(&format!("papers-{id}-"))
-                    .suffix(".yaml")
-                    .rand_bytes(5)
-                    .tempfile()?;
-
-                write!(file, "{}", data)?;
-
-                edit(file.path())?;
-
-                let file = File::open(file.path())?;
-                debug!("Loading paper from reader");
-                let updated_paper: Paper = serde_yaml::from_reader(&file)?;
-                let (updated_editable, _) = updated_paper.into_editable_and_read_only();
-
-                repo.update_paper(read_only.id, &original_editable, &updated_editable)?;
-                println!("Updated paper {}", read_only.id);
-            }
-            Self::Remove { ids, with_file } => {
-                let mut repo = load_repo(config)?;
-                for id in ids.0 {
-                    if let Ok(paper) = repo.get_paper(id) {
-                        debug!(id, file = paper.filename, "Removing paper");
-                        repo.remove(id)?;
-                        info!(id, file = paper.filename, "Removed paper");
-                        if with_file {
-                            // check that the file isn't needed by another paper
-                            let papers_with_that_file = repo.list(
-                                Vec::new(),
-                                paper.filename.clone(),
-                                None,
-                                Vec::new(),
-                                Vec::new(),
-                                Vec::new(),
-                            )?;
-                            if papers_with_that_file.is_empty() {
-                                if let Some(filename) = &paper.filename {
-                                    debug!(file = filename, "Removing file");
-                                    remove_file(filename)?;
-                                    info!(file = filename, "Removed file");
-                                }
-                            } else {
-                                let papers_with_that_file = papers_with_that_file
-                                    .iter()
-                                    .map(|p| p.id)
-                                    .collect::<Vec<_>>();
-                                warn!(
-                                    file = paper.filename,
-                                    ?papers_with_that_file,
-                                    "Can't remove the file, it is used by other papers"
-                                );
-                            }
-                        }
-                    } else {
-                        info!(id, "No paper with that id to remove");
-                    }
-                }
-            }
-            Self::Authors { subcommand } => {
-                subcommand.execute(config)?;
-            }
-            Self::Tags { subcommand } => {
-                subcommand.execute(config)?;
-            }
-            Self::Labels { subcommand } => {
-                subcommand.execute(config)?;
-            }
             Self::List {
-                ids,
                 file,
                 title,
                 authors,
@@ -529,14 +325,7 @@ impl SubCommand {
                 output,
             } => {
                 let mut repo = load_repo(config)?;
-                let papers = repo.list(
-                    ids.unwrap_or_default().0,
-                    file,
-                    title,
-                    authors,
-                    tags,
-                    labels,
-                )?;
+                let papers = repo.list(file, title, authors, tags, labels)?;
 
                 match output {
                     OutputStyle::Table => {
@@ -551,98 +340,16 @@ impl SubCommand {
                     }
                 }
             }
-            Self::Notes { paper_id } => {
-                let mut repo = load_repo(config)?;
-                let paper_id = match paper_id {
-                    Some(id) => id,
-                    None => {
-                        let all_papers = repo
-                            .list(Vec::new(), None, None, Vec::new(), Vec::new(), Vec::new())
-                            .unwrap_or_default();
-
-                        match select_paper(all_papers) {
-                            Some(p) => p.id,
-                            None => {
-                                anyhow::bail!("No paper selected");
-                            }
-                        }
-                    }
-                };
-
-                let note = repo.get_note(paper_id)?;
-
-                let content = match &note {
-                    Some(note) => note.content.clone(),
-                    None => match &config.notes_template {
-                        PathOrString::File(template_file) => {
-                            let abs_path = if template_file.is_absolute() {
-                                template_file.clone()
-                            } else {
-                                repo.root().join(template_file)
-                            };
-                            debug!(?abs_path, ?template_file, "New note, loading template");
-                            let mut f = File::open(abs_path)?;
-                            let mut template = String::new();
-                            f.read_to_string(&mut template)?;
-                            template
-                        }
-                        PathOrString::Content(s) => s.clone(),
-                    },
-                };
-
-                let original_paper = repo.get_paper(paper_id)?;
-                let (original_editable, mut read_only) =
-                    original_paper.into_editable_and_read_only();
-                read_only.notes = None;
-
-                let notes_comment = "# Write notes below the ---";
-                let frontmatter =
-                    generate_editable_and_read_only_string(&original_editable, &read_only)?;
-                let content = format!("---\n{frontmatter}\n{notes_comment}\n---\n\n{content}",);
-
-                let mut file = tempfile::Builder::new()
-                    .prefix(&format!("papers-{paper_id}-"))
-                    .suffix(".md")
-                    .rand_bytes(5)
-                    .tempfile()?;
-                write!(file, "{}", content)?;
-
-                edit(file.path())?;
-
-                let mut content = String::new();
-                let mut file = File::open(file.path())?;
-                file.read_to_string(&mut content)?;
-
-                let matter = Matter::<YAML>::new();
-                let result = matter.parse(&content);
-
-                let content = result.content;
-                if let Some(mut note) = note {
-                    note.content = content;
-                    repo.update_note(note)?;
-                } else {
-                    repo.insert_note(papers_core::db::NewNote { paper_id, content })?;
-                }
-
-                if let Some(data) = &result.data {
-                    if let Ok(updated_paper) = data.deserialize::<Paper>() {
-                        let (updated_editable, _) = updated_paper.into_editable_and_read_only();
-                        repo.update_paper(read_only.id, &original_editable, &updated_editable)?;
-                    }
-                }
-            }
             Self::RenameFiles {
                 strategies,
                 dry_run,
             } => {
                 let mut repo = load_repo(config)?;
-                for paper in
-                    repo.list(Vec::new(), None, None, Vec::new(), Vec::new(), Vec::new())?
-                {
+                for paper in repo.all_papers() {
                     if let Some(filename) = &paper.filename {
                         let path = repo.root().join(filename);
                         if !path.is_file() {
-                            error!("{}: Path for paper {:?} wasn't a file", paper.id, path);
+                            error!("Path for paper {:?} wasn't a file", path);
                             continue;
                         }
 
@@ -660,7 +367,7 @@ impl SubCommand {
                         let new_filename = if let Some(new_name) = new_name {
                             new_name
                         } else {
-                            error!("{}: Failed to generate new name for paper", paper.id);
+                            error!("Failed to generate new name for paper");
                             continue;
                         };
 
@@ -671,45 +378,37 @@ impl SubCommand {
                         };
 
                         if new_path == path {
-                            println!(
-                                "{}: Skipping paper as already has the correct name",
-                                paper.id
-                            );
+                            println!("Skipping paper as already has the correct name");
                             continue;
                         }
                         if new_path.exists() {
-                            error!(
-                                "{}: New path for paper already exists: {:?}",
-                                paper.id, new_path
-                            );
+                            error!("New path for paper already exists: {:?}", new_path);
                             continue;
                         }
 
                         // old exists, new doesn't exist, do the rename
                         if !dry_run {
                             rename(&path, &new_path).unwrap();
-                            repo.update(paper.id, Some(&new_path), None, None).unwrap();
+                            repo.update(&new_path, Some(&new_path)).unwrap();
                         }
-                        println!("{}: Renamed {:?} to {:?}", paper.id, path, new_path);
+                        println!("Renamed {:?} to {:?}", path, new_path);
                     } else {
-                        debug!(id = paper.id, "Skipping paper");
-                        println!("{}: Skipping paper as it has no file associated", paper.id)
+                        debug!("Skipping paper");
+                        println!("Skipping paper as it has no file associated")
                     }
                 }
             }
-            Self::Open { paper_id } => {
-                let mut repo = load_repo(config)?;
+            Self::Open { path } => {
+                let repo = load_repo(config)?;
                 let root = repo.root().to_owned();
 
-                let paper_id = match paper_id {
-                    Some(id) => id,
+                let path = match path {
+                    Some(path) => path,
                     None => {
-                        let all_papers = repo
-                            .list(Vec::new(), None, None, Vec::new(), Vec::new(), Vec::new())
-                            .unwrap_or_default();
+                        let all_papers = repo.all_papers();
 
                         match select_paper(all_papers) {
-                            Some(p) => p.id,
+                            Some(p) => repo.get_path(&p),
                             None => {
                                 anyhow::bail!("No paper selected");
                             }
@@ -717,7 +416,7 @@ impl SubCommand {
                     }
                 };
 
-                let paper = repo.get_paper(paper_id)?;
+                let paper = repo.get_paper(&path)?;
                 if let Some(filename) = &paper.filename {
                     let path = root.join(filename);
                     info!(?path, "Opening");
@@ -734,46 +433,19 @@ impl SubCommand {
                 let papers = match file {
                     FileOrStdin::File(path) => {
                         let reader = File::open(path)?;
-                        let papers: Vec<Paper> = serde_json::from_reader(reader)?;
+                        let papers: Vec<ExportPaperData> = serde_json::from_reader(reader)?;
                         papers
                     }
                     FileOrStdin::Stdin => {
                         let reader = stdin();
-                        let papers: Vec<Paper> = serde_json::from_reader(reader)?;
+                        let papers: Vec<ExportPaperData> = serde_json::from_reader(reader)?;
                         papers
                     }
                 };
                 let mut repo = load_repo(config)?;
                 for paper in papers {
-                    let id = repo.import(paper)?;
-                    info!(id, "Added paper");
-                }
-            }
-            Self::ExportToFiles {} => {
-                let mut repo = load_repo(config)?;
-                let all_papers = repo
-                    .list(Vec::new(), None, None, Vec::new(), Vec::new(), Vec::new())
-                    .unwrap_or_default();
-                for paper in all_papers {
-                    let paper_filename = paper
-                        .title
-                        .clone()
-                        .unwrap_or_else(|| format!("paper-{}", paper.id));
-                    let paper_path = repo.root().join(paper_filename).with_extension("md");
-                    if paper_path.exists() {
-                        debug!(?paper_path, "Skipping writing db contents out");
-                        continue;
-                    }
-                    debug!(?paper_path, "Writing db contents out");
-                    let paper_id = paper.id;
-                    let export_data = paper.into_export_data();
-
-                    let frontmatter = generate_exported_data_string(&export_data)?;
-                    let note = repo.get_note(paper_id)?;
-                    let note_content = note.map(|n| n.content).unwrap_or_default();
-                    let content = format!("---\n{frontmatter}\n---\n\n{note_content}",);
-                    let mut file = File::create(paper_path)?;
-                    write!(file, "{}", content)?;
+                    repo.import(paper)?;
+                    info!("Added paper");
                 }
             }
         }
@@ -782,22 +454,10 @@ impl SubCommand {
 }
 
 fn load_repo(config: &Config) -> anyhow::Result<Repo> {
-    let cwd = current_dir()?;
-    let repo_dir = if let Ok(repo_dir) = repo::find_root(&cwd, &config.db_filename) {
-        debug!(?repo_dir, "Found repo dir from searching.");
-        repo_dir
-    } else {
-        debug!(repo_dir=?config.default_repo, "Did not find repo dir from searching, using default repo.");
-        config.default_repo.to_owned()
-    };
-    let repo = Repo::load(&repo_dir, &config.db_filename)?;
+    debug!(repo_dir=?config.default_repo, "Using default repo.");
+    let repo_dir = config.default_repo.to_owned();
+    let repo = Repo::load(&repo_dir)?;
     Ok(repo)
-}
-
-fn edit(filename: &Path) -> anyhow::Result<()> {
-    let editor = std::env::var("EDITOR").unwrap_or_else(|_| "vim".to_owned());
-    Command::new(editor).arg(filename).status()?;
-    Ok(())
 }
 
 /// Manage authors.
@@ -823,131 +483,6 @@ pub enum AuthorsCommands {
         #[clap()]
         authors: Vec<Author>,
     },
-}
-
-impl AuthorsCommands {
-    /// Execute authors commands.
-    pub fn execute(self, config: &Config) -> anyhow::Result<()> {
-        match self {
-            Self::Add { ids, authors } => {
-                let mut repo = load_repo(config)?;
-                for id in ids.0 {
-                    if let Err(err) = repo.add_authors(id, authors.clone()) {
-                        warn!(id, %err, "Failed to add authors");
-                    }
-                }
-            }
-            Self::Remove { ids, authors } => {
-                let mut repo = load_repo(config)?;
-                for id in ids.0 {
-                    if let Err(err) = repo.remove_authors(id, authors.clone()) {
-                        warn!(id, %err, "Failed to remove authors");
-                    }
-                }
-            }
-        }
-        Ok(())
-    }
-}
-
-/// Manage tags.
-#[derive(Debug, clap::Parser)]
-pub enum TagsCommands {
-    /// Add tags to papers.
-    Add {
-        /// Ids of papers to add tags to, e.g. 1 1,2 1-3,5.
-        #[clap()]
-        ids: Ids,
-
-        /// Tags to add.
-        #[clap()]
-        tags: Vec<Tag>,
-    },
-    /// Remove tags from papers.
-    Remove {
-        /// Ids of papers to remove tags from, e.g. 1 1,2 1-3,5.
-        #[clap()]
-        ids: Ids,
-
-        /// Tags to remove.
-        #[clap()]
-        tags: Vec<Tag>,
-    },
-}
-
-impl TagsCommands {
-    /// Execute tags commands.
-    pub fn execute(self, config: &Config) -> anyhow::Result<()> {
-        match self {
-            Self::Add { ids, tags } => {
-                let mut repo = load_repo(config)?;
-                for id in ids.0 {
-                    if let Err(err) = repo.add_tags(id, tags.clone()) {
-                        warn!(id, %err, "Failed to add tags");
-                    }
-                }
-            }
-            Self::Remove { ids, tags } => {
-                let mut repo = load_repo(config)?;
-                for id in ids.0 {
-                    if let Err(err) = repo.remove_tags(id, tags.clone()) {
-                        warn!(id, %err, "Failed to remove tags");
-                    }
-                }
-            }
-        }
-        Ok(())
-    }
-}
-
-/// Manage labels.
-#[derive(Debug, clap::Parser)]
-pub enum LabelsCommands {
-    /// Add labels to papers.
-    Add {
-        /// Ids of papers to add labels to, e.g. 1 1,2 1-3,5.
-        #[clap()]
-        ids: Ids,
-
-        /// Labels to add.
-        #[clap()]
-        labels: Vec<Label>,
-    },
-    /// Remove labels from papers.
-    Remove {
-        /// Ids of papers to remove labels from, e.g. 1 1,2 1-3,5.
-        #[clap()]
-        ids: Ids,
-
-        /// Labels to remove.
-        #[clap()]
-        labels: Vec<Tag>,
-    },
-}
-
-impl LabelsCommands {
-    /// Execute label commands.
-    pub fn execute(self, config: &Config) -> anyhow::Result<()> {
-        match self {
-            Self::Add { ids, labels } => {
-                let mut repo = load_repo(config)?;
-                for id in ids.0 {
-                    if let Err(err) = repo.add_labels(id, labels.clone()) {
-                        warn!(id, %err, "Failed to add labels");
-                    }
-                }
-            }
-            Self::Remove { ids, labels } => {
-                let mut repo = load_repo(config)?;
-                for id in ids.0 {
-                    if let Err(err) = repo.remove_labels(id, labels.clone()) {
-                        warn!(id, %err, "Failed to remove labels");
-                    }
-                }
-            }
-        }
-        Ok(())
-    }
 }
 
 /// Fetch a url to a local file, returning the path to the fetch file.
@@ -1023,11 +558,11 @@ fn add<P: AsRef<Path>>(
     repo: &mut Repo,
     file: Option<P>,
     url: Option<String>,
-    title: Option<String>,
+    title: String,
     authors: BTreeSet<Author>,
     tags: BTreeSet<Tag>,
     labels: BTreeSet<Label>,
-) -> anyhow::Result<Paper> {
+) -> anyhow::Result<ExportPaperData> {
     if let Some(file) = file.as_ref() {
         let file = file.as_ref();
         if !file.is_file() {
@@ -1036,7 +571,7 @@ fn add<P: AsRef<Path>>(
     }
 
     let paper = repo.add(file, url, title, authors, tags, labels)?;
-    info!(id = paper.id, filename = paper.filename, "Added paper");
+    info!(filename = paper.filename, "Added paper");
 
     Ok(paper)
 }
@@ -1132,24 +667,6 @@ where
         outdir,   // We need to specify where to write to
     )?;
     Ok(path)
-}
-
-fn generate_exported_data_string(data: &ExportPaperData) -> anyhow::Result<String> {
-    let export_frontmatter = serde_yaml::to_string(&data)?.trim().to_owned();
-    Ok(export_frontmatter)
-}
-
-fn generate_editable_and_read_only_string(
-    editable: &EditablePaperData,
-    read_only: &ReadOnlyPaperData,
-) -> anyhow::Result<String> {
-    let editable_frontmatter = serde_yaml::to_string(&editable)?;
-    let read_only_frontmatter = serde_yaml::to_string(&read_only)?;
-    let editable_comment = "# These fields are editable";
-    let read_only_comment = "# These fields are not editable";
-    Ok(format!(
-        "{editable_comment}\n{editable_frontmatter}\n{read_only_comment}\n{read_only_frontmatter}",
-    ))
 }
 
 #[test]
