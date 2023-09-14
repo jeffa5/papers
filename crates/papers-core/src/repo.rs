@@ -61,6 +61,10 @@ impl Repo {
             created_at: now_naive(),
             modified_at: now_naive(),
         };
+        let paper_path = self.get_path(&paper);
+        if self.root.join(&paper_path).is_file() {
+            anyhow::bail!("Paper entry already exists for {:?}", paper_path);
+        }
         self.write_paper(&paper, "")?;
 
         Ok(paper)
