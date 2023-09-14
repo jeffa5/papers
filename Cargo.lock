@@ -1581,6 +1581,7 @@ dependencies = [
  "diesel",
  "diesel_migrations",
  "expect-test",
+ "gray_matter",
  "serde",
  "tempfile",
  "tracing",

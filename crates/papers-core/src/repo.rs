@@ -1,5 +1,7 @@
+use gray_matter::{engine::YAML, Matter};
 use std::collections::BTreeSet;
-use std::fs::{canonicalize, create_dir_all};
+use std::fs::{canonicalize, create_dir_all, read_dir, File};
+use std::io::Read;
 use std::path::{Path, PathBuf};
 
 use anyhow::Context;
@@ -436,17 +438,12 @@ impl Repo {
         match_authors: Vec<Author>,
         match_tags: Vec<Tag>,
         match_labels: Vec<Label>,
-        include_deleted: bool,
     ) -> anyhow::Result<Vec<Paper>> {
-        let db_papers = self.db.list_papers()?;
-        let mut papers = Vec::new();
+        let papers = self.all_papers();
+        let mut filtered_papers = Vec::new();
         let match_title = match_title.map(|t| t.to_lowercase());
         let match_file = match_file.map(|t| t.to_lowercase());
-        for paper in db_papers {
-            if !include_deleted && paper.deleted {
-                continue;
-            }
-
+        for paper in papers {
             if !match_ids.is_empty() && !match_ids.contains(&paper.id) {
                 continue;
             }
@@ -512,7 +509,7 @@ impl Repo {
                 continue;
             }
 
-            papers.push(Paper {
+            filtered_papers.push(Paper {
                 id: paper.id,
                 url: paper.url,
                 filename: paper.filename,
@@ -526,7 +523,7 @@ impl Repo {
                 modified_at: paper.modified_at,
             });
         }
-        Ok(papers)
+        Ok(filtered_papers)
     }
 
     pub fn get_note(&mut self, paper_id: i32) -> anyhow::Result<Option<db::Note>> {
@@ -539,6 +536,38 @@ impl Repo {
 
     pub fn update_note(&mut self, note: db::Note) -> anyhow::Result<()> {
         self.db.update_note(note)
+    }
+
+    fn all_papers(&self) -> Vec<Paper> {
+        let mut papers = Vec::new();
+        let entries = read_dir(&self.root);
+        if let Ok(entries) = entries {
+            for entry in entries {
+                if let Ok(entry) = entry {
+                    let path = entry.path();
+                    if path.extension().and_then(|e| e.to_str()) == Some("md") {
+                        if let Ok(paper) = self.read_file(&path) {
+                            papers.push(paper);
+                        }
+                    }
+                }
+            }
+        }
+        papers
+    }
+
+    fn read_file(&self, path: &Path) -> anyhow::Result<Paper> {
+        let mut file_content = String::new();
+        let mut file = File::open(path)?;
+        file.read_to_string(&mut file_content)?;
+        let matter = Matter::<YAML>::new();
+        let file_content = matter.parse(&file_content);
+        if let Some(data) = file_content.data {
+            let paper = data.deserialize::<Paper>()?;
+            Ok(paper)
+        } else {
+            anyhow::bail!("No content for file! Is there any frontmatter?")
+        }
     }
 }
 

@@ -170,10 +170,6 @@ pub enum SubCommand {
         #[clap(name = "label", long, short)]
         labels: Vec<Label>,
 
-        /// Show papers that have been deleted too.
-        #[clap(long)]
-        deleted: bool,
-
         /// Output the filtered selection of papers in different formats.
         #[clap(long, short, value_enum, default_value_t)]
         output: OutputStyle,
@@ -440,15 +436,7 @@ impl SubCommand {
                     Some(id) => id,
                     None => {
                         let all_papers = repo
-                            .list(
-                                Vec::new(),
-                                None,
-                                None,
-                                Vec::new(),
-                                Vec::new(),
-                                Vec::new(),
-                                false,
-                            )
+                            .list(Vec::new(), None, None, Vec::new(), Vec::new(), Vec::new())
                             .unwrap_or_default();
 
                         match select_paper(all_papers) {
@@ -498,7 +486,6 @@ impl SubCommand {
                                 Vec::new(),
                                 Vec::new(),
                                 Vec::new(),
-                                false,
                             )?;
                             if papers_with_that_file.is_empty() {
                                 if let Some(filename) = &paper.filename {
@@ -539,7 +526,6 @@ impl SubCommand {
                 authors,
                 tags,
                 labels,
-                deleted,
                 output,
             } => {
                 let mut repo = load_repo(config)?;
@@ -550,7 +536,6 @@ impl SubCommand {
                     authors,
                     tags,
                     labels,
-                    deleted,
                 )?;
 
                 match output {
@@ -572,15 +557,7 @@ impl SubCommand {
                     Some(id) => id,
                     None => {
                         let all_papers = repo
-                            .list(
-                                Vec::new(),
-                                None,
-                                None,
-                                Vec::new(),
-                                Vec::new(),
-                                Vec::new(),
-                                false,
-                            )
+                            .list(Vec::new(), None, None, Vec::new(), Vec::new(), Vec::new())
                             .unwrap_or_default();
 
                         match select_paper(all_papers) {
@@ -659,15 +636,9 @@ impl SubCommand {
                 dry_run,
             } => {
                 let mut repo = load_repo(config)?;
-                for paper in repo.list(
-                    Vec::new(),
-                    None,
-                    None,
-                    Vec::new(),
-                    Vec::new(),
-                    Vec::new(),
-                    false,
-                )? {
+                for paper in
+                    repo.list(Vec::new(), None, None, Vec::new(), Vec::new(), Vec::new())?
+                {
                     if let Some(filename) = &paper.filename {
                         let path = repo.root().join(filename);
                         if !path.is_file() {
@@ -734,15 +705,7 @@ impl SubCommand {
                     Some(id) => id,
                     None => {
                         let all_papers = repo
-                            .list(
-                                Vec::new(),
-                                None,
-                                None,
-                                Vec::new(),
-                                Vec::new(),
-                                Vec::new(),
-                                false,
-                            )
+                            .list(Vec::new(), None, None, Vec::new(), Vec::new(), Vec::new())
                             .unwrap_or_default();
 
                         match select_paper(all_papers) {
@@ -789,15 +752,7 @@ impl SubCommand {
             Self::ExportToFiles {} => {
                 let mut repo = load_repo(config)?;
                 let all_papers = repo
-                    .list(
-                        Vec::new(),
-                        None,
-                        None,
-                        Vec::new(),
-                        Vec::new(),
-                        Vec::new(),
-                        false,
-                    )
+                    .list(Vec::new(), None, None, Vec::new(), Vec::new(), Vec::new())
                     .unwrap_or_default();
                 for paper in all_papers {
                     let paper_filename = paper
