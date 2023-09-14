@@ -17,7 +17,6 @@ fn test_help() {
               -u, --url <URL>                    Url to fetch from
                   --default-repo <DEFAULT_REPO>  Default repo to use if not found in parents of current directory
                   --fetch <FETCH>                Whether to fetch the document from URL or not [possible values: true, false]
-                  --db-filename <DB_FILENAME>    Filename for the database
               -f, --file <FILE>                  File to add
                   --title <TITLE>                Title of the file
               -a, --author <author>              Authors to associate with these files
@@ -35,7 +34,7 @@ fn test_add_without_init() {
     f.check_ok(
         "add --file missing.pdf",
         expect![[""]],
-        expect!["Error: Not a repo, run `init` first"],
+        expect![[r#"error: Failed to add paper: Path was not a file: "missing.pdf""#]],
     );
 }
 
@@ -54,8 +53,8 @@ fn test_add_present_file() {
     let mut f = Fixture::new();
     f.check_ok(
         "add --file file1.pdf",
-        expect!["Added paper 1"],
         expect![""],
+        expect!["error: Failed to add paper: Is a directory (os error 21)"],
     );
 }
 
@@ -64,7 +63,7 @@ fn test_add_just_title() {
     let mut f = Fixture::new();
     f.check_ok(
         "add --title test-title",
-        expect!["Added paper 1"],
+        expect!["Added paper test-title"],
         expect![""],
     );
 }
@@ -74,8 +73,8 @@ fn test_add_file_from_nested_dir() {
     let mut f = Fixture::new();
     f.check_ok(
         "add --file nested/file1.pdf",
-        expect!["Added paper 1"],
         expect![""],
+        expect!["error: Failed to add paper: Is a directory (os error 21)"],
     );
 }
 
@@ -85,12 +84,12 @@ fn test_add_file_from_neighbour() {
     f.check_ok(
         "add --file ../neighbour/file1.pdf",
         expect![""],
-        expect!["error: Failed to add paper: File does not live in the root"],
+        expect!["error: Failed to add paper: Is a directory (os error 21)"],
     );
 }
 
 #[test]
 fn test_add_interactive() {
     let mut f = Fixture::new();
-    f.check_ok_with_stdin("add", "", expect!["Added paper 1"], expect![""]);
+    f.check_ok_with_stdin("add", "", expect![""], expect!["error: Failed to add paper: Is a directory (os error 21)"]);
 }

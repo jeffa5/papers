@@ -10,11 +10,7 @@ fn test_help() {
         expect![[r#"
             List the papers stored with this repo
 
-            Usage: papers list [OPTIONS] [IDS]
-
-            Arguments:
-              [IDS]
-                      Paper ids to filter to, e.g. 1 1,2 1-3,5
+            Usage: papers list [OPTIONS]
 
             Options:
               -c, --config-file <CONFIG_FILE>
@@ -32,17 +28,11 @@ fn test_help() {
               -a, --author <author>
                       Filter down to papers that have all of the given authors
 
-                  --db-filename <DB_FILENAME>
-                      Filename for the database
-
               -t, --tag <tag>
                       Filter down to papers that have all of the given tags
 
               -l, --label <label>
                       Filter down to papers that have all of the given labels. Labels take the form `key=value`
-
-                  --deleted
-                      Show papers that have been deleted too
 
               -o, --output <OUTPUT>
                       Output the filtered selection of papers in different formats

@@ -107,7 +107,6 @@ mod tests {
             r#""#,
             expect![[r#"
                 Config {
-                    db_filename: "papers.db",
                     default_repo: ".local/share/papers",
                     notes_template: Content(
                         "",
@@ -129,7 +128,6 @@ mod tests {
 "#,
             expect![[r#"
                 Config {
-                    db_filename: "papers.db",
                     default_repo: ".local/share/papers",
                     notes_template: File(
                         "some_path.md",
@@ -151,7 +149,6 @@ mod tests {
             "#,
             expect![[r#"
                 Config {
-                    db_filename: "papers.db",
                     default_repo: ".local/share/papers",
                     notes_template: Content(
                         "my content",
@@ -179,7 +176,6 @@ mod tests {
             "#,
             expect![[r#"
                 Config {
-                    db_filename: "papers.db",
                     default_repo: ".local/share/papers",
                     notes_template: Content(
                         "line 1\nline 2\n\na break\n\n line 3\n        ",

@@ -18,7 +18,6 @@ fn test_help() {
 
                       Possible values:
                       - title: Rename to match the title of the paper
-                      - id:    Rename to match the id of the paper
 
             Options:
               -c, --config-file <CONFIG_FILE>
@@ -29,9 +28,6 @@ fn test_help() {
 
                   --default-repo <DEFAULT_REPO>
                       Default repo to use if not found in parents of current directory
-
-                  --db-filename <DB_FILENAME>
-                      Filename for the database
 
               -h, --help
                       Print help (see a summary with '-h')"#]],
