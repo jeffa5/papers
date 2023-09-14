@@ -364,7 +364,7 @@ impl SubCommand {
                         // the file exists
                         // make the new name and check that file doesn't exist
                         let new_name = strategies.iter().find_map(|s| s.rename(&paper).ok());
-                        let new_filename = if let Some(new_name) = new_name {
+                        let new_name = if let Some(new_name) = new_name {
                             new_name
                         } else {
                             error!("Failed to generate new name for paper");
@@ -372,9 +372,9 @@ impl SubCommand {
                         };
 
                         let new_path = if let Some(parent) = path.parent() {
-                            parent.join(new_filename).with_extension(new_extension)
+                            parent.join(new_name).with_extension(new_extension)
                         } else {
-                            PathBuf::from(new_filename).with_extension(new_extension)
+                            PathBuf::from(new_name).with_extension(new_extension)
                         };
 
                         if new_path == path {
@@ -389,7 +389,8 @@ impl SubCommand {
                         // old exists, new doesn't exist, do the rename
                         if !dry_run {
                             rename(&path, &new_path).unwrap();
-                            repo.update(&new_path, Some(&new_path)).unwrap();
+                            println!("Renaming {path:?} to {new_path:?}");
+                            repo.update(&paper, Some(&new_path)).unwrap();
                         }
                         println!("Renamed {:?} to {:?}", path, new_path);
                     } else {

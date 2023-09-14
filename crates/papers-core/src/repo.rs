@@ -80,7 +80,7 @@ impl Repo {
         Ok(())
     }
 
-    pub fn update(&mut self, path: &Path, file: Option<&Path>) -> anyhow::Result<()> {
+    pub fn update(&mut self, paper: &ExportPaperData, file: Option<&Path>) -> anyhow::Result<()> {
         let filename = if let Some(file) = file {
             if !canonicalize(file)?
                 .parent()
@@ -98,7 +98,8 @@ impl Repo {
             None
         };
 
-        let (mut data, notes) = self.get_paper_with_notes(path)?;
+        let paper_path = self.get_path(paper);
+        let (mut data, notes) = self.get_paper_with_notes(&paper_path)?;
         data.filename = filename;
 
         self.write_paper(&data, &notes)?;
