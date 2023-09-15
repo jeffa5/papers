@@ -10,12 +10,7 @@ use papers_cli_lib::config::Config;
 fn main() -> anyhow::Result<()> {
     let options = Cli::parse();
     tracing_subscriber::fmt()
-        .with_env_filter(
-            EnvFilter::builder()
-                .with_default_directive(Level::INFO.into())
-                .from_env()
-                .unwrap(),
-        )
+        .with_env_filter(EnvFilter::builder().from_env().unwrap())
         .with_writer(io::stderr)
         .init();
 
