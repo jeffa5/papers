@@ -1,4 +1,4 @@
-use papers_core::{paper::Paper, repo::PROHIBITED_PATH_CHARS};
+use papers_core::{paper::PaperMeta, repo::PROHIBITED_PATH_CHARS};
 
 /// Strategy to rename files.
 #[derive(Debug, Clone, clap::ValueEnum)]
@@ -9,7 +9,7 @@ pub enum Strategy {
 
 impl Strategy {
     /// Rename a file using the current strategy.
-    pub fn rename(&self, paper: &Paper) -> anyhow::Result<String> {
+    pub fn rename(&self, paper: &PaperMeta) -> anyhow::Result<String> {
         let name = match self {
             Self::Title => Ok(paper.title.to_owned()),
         };
@@ -24,7 +24,7 @@ mod tests {
 
     use super::*;
 
-    fn check(strategy: Strategy, paper: Paper, expected: Expect) {
+    fn check(strategy: Strategy, paper: PaperMeta, expected: Expect) {
         let renamed = strategy.rename(&paper).unwrap();
         expected.assert_eq(&renamed);
     }
@@ -33,7 +33,7 @@ mod tests {
     fn test_with_spaces() {
         check(
             Strategy::Title,
-            Paper {
+            PaperMeta {
                 title: "my long title with spaces".to_owned(),
                 ..Default::default()
             },
@@ -46,7 +46,7 @@ mod tests {
         // some chars shouldn't be allowed https://stackoverflow.com/a/4040068/7164655
         check(
             Strategy::Title,
-            Paper {
+            PaperMeta {
                 title: "MLT: my |long<> title\" with/ spaces and * more?".to_owned(),
                 ..Default::default()
             },

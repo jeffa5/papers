@@ -1,10 +1,17 @@
-use std::collections::BTreeSet;
+use std::{collections::BTreeSet, path::PathBuf};
 
 use crate::{author::Author, label::Label, tag::Tag};
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Clone)]
+pub struct LoadedPaper {
+    pub path: PathBuf,
+    pub meta: PaperMeta,
+    pub notes: String,
+}
+
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
-pub struct Paper {
+pub struct PaperMeta {
     pub title: String,
     pub url: Option<String>,
     pub filename: Option<String>,

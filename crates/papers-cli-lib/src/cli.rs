@@ -5,9 +5,10 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use anyhow::Context;
 use clap::{CommandFactory, ValueEnum};
 use clap_complete::{generate_to, Generator, Shell};
-use papers_core::{author::Author, paper::Paper, repo::Repo, tag::Tag};
+use papers_core::{author::Author, paper::PaperMeta, repo::Repo, tag::Tag};
 use pdf::file::FileOptions;
 use reqwest::Url;
 use tracing::{debug, info, warn};
@@ -337,28 +338,25 @@ impl SubCommand {
                 sort,
             } => {
                 let mut repo = load_repo(config)?;
-                let mut papers = repo
-                    .list(file, title, authors, tags, labels)?
-                    .into_iter()
-                    .map(|p| p.1)
-                    .collect::<Vec<_>>();
+                let mut papers = repo.list(file, title, authors, tags, labels)?;
 
                 papers.sort_by_key(|p| match sort {
-                    SortBy::Title => p.title.clone(),
-                    SortBy::CreatedAt => p.created_at.to_string(),
-                    SortBy::ModifiedAt => p.modified_at.to_string(),
+                    SortBy::Title => p.meta.title.clone(),
+                    SortBy::CreatedAt => p.meta.created_at.to_string(),
+                    SortBy::ModifiedAt => p.meta.modified_at.to_string(),
                 });
 
+                let paper_metas = papers.into_iter().map(|p| p.meta).collect::<Vec<_>>();
                 match output {
                     OutputStyle::Table => {
-                        let table = Table::from(papers);
+                        let table = Table::from(paper_metas);
                         println!("{table}");
                     }
                     OutputStyle::Json => {
-                        serde_json::to_writer(stdout(), &papers)?;
+                        serde_json::to_writer(stdout(), &paper_metas)?;
                     }
                     OutputStyle::Yaml => {
-                        serde_yaml::to_writer(stdout(), &papers)?;
+                        serde_yaml::to_writer(stdout(), &paper_metas)?;
                     }
                 }
             }
@@ -368,8 +366,8 @@ impl SubCommand {
             } => {
                 let mut repo = load_repo(config)?;
                 let root = repo.root().to_owned();
-                for (paper_path, paper) in repo.all_papers() {
-                    let new_name = strategies.iter().find_map(|s| s.rename(&paper).ok());
+                for paper in repo.all_papers() {
+                    let new_name = strategies.iter().find_map(|s| s.rename(&paper.meta).ok());
                     let new_name = if let Some(new_name) = new_name {
                         new_name
                     } else {
@@ -377,7 +375,7 @@ impl SubCommand {
                         continue;
                     };
 
-                    if let Some(filename) = &paper.filename {
+                    if let Some(filename) = &paper.meta.filename {
                         let path = root.join(filename);
                         if path.is_file() {
                             let new_extension = if let Ok(Some(kind)) = infer::get_from_path(&path)
@@ -404,7 +402,7 @@ impl SubCommand {
                                     println!("Renaming {path:?} to {new_path:?}");
                                     if !dry_run {
                                         rename(&path, &new_path).unwrap();
-                                        repo.update(&paper_path, Some(&new_path)).unwrap();
+                                        repo.update(&paper, Some(&new_path)).unwrap();
                                     }
                                 }
                             }
@@ -414,7 +412,7 @@ impl SubCommand {
                     }
 
                     let new_paper_path = root.join(new_name).with_extension("md");
-                    let paper_path = root.join(paper_path);
+                    let paper_path = root.join(paper.path);
                     if !new_paper_path.exists() {
                         if paper_path != new_paper_path {
                             println!("Renaming {paper_path:?} to {new_paper_path:?}");
@@ -432,10 +430,10 @@ impl SubCommand {
                 let path = match path {
                     Some(path) => path,
                     None => {
-                        let all_papers = repo.all_papers().into_iter().map(|n| n.1).collect();
+                        let all_papers = repo.all_papers();
 
                         match select_paper(all_papers) {
-                            Some(p) => repo.get_path(&p),
+                            Some(p) => p.path,
                             None => {
                                 anyhow::bail!("No paper selected");
                             }
@@ -444,7 +442,7 @@ impl SubCommand {
                 };
 
                 let paper = repo.get_paper(&path)?;
-                if let Some(filename) = &paper.filename {
+                if let Some(filename) = &paper.meta.filename {
                     let path = root.join(filename);
                     info!(?path, "Opening");
                     open::that(path)?;
@@ -460,12 +458,12 @@ impl SubCommand {
                 let papers = match file {
                     FileOrStdin::File(path) => {
                         let reader = File::open(path)?;
-                        let papers: Vec<Paper> = serde_json::from_reader(reader)?;
+                        let papers: Vec<PaperMeta> = serde_json::from_reader(reader)?;
                         papers
                     }
                     FileOrStdin::Stdin => {
                         let reader = stdin();
-                        let papers: Vec<Paper> = serde_json::from_reader(reader)?;
+                        let papers: Vec<PaperMeta> = serde_json::from_reader(reader)?;
                         papers
                     }
                 };
@@ -492,8 +490,10 @@ impl SubCommand {
 
                 for path in paths {
                     if path.extension().and_then(|e| e.to_str()) == Some("md") {
-                        let paper = repo.get_paper(&path)?;
-                        let expected_path = repo.get_path(&paper);
+                        let paper = repo
+                            .get_paper(&path)
+                            .with_context(|| format!("Loading paper at {:?}", path))?;
+                        let expected_path = repo.get_path(&paper.meta);
                         let current_path = path.strip_prefix(&root).unwrap();
                         debug!(?expected_path, ?current_path, "Checking paper path");
                         // check that the paper notes are at the right location
@@ -506,7 +506,7 @@ impl SubCommand {
                         }
 
                         // check that the paper's file exists
-                        if let Some(filename) = paper.filename {
+                        if let Some(filename) = paper.meta.filename {
                             let abs_filename = root.join(&filename);
                             if !abs_filename.is_file() {
                                 warn!(
@@ -650,7 +650,7 @@ fn add<P: AsRef<Path>>(
     authors: BTreeSet<Author>,
     tags: BTreeSet<Tag>,
     labels: BTreeSet<Label>,
-) -> anyhow::Result<Paper> {
+) -> anyhow::Result<PaperMeta> {
     if let Some(file) = file.as_ref() {
         let file = file.as_ref();
         if !file.is_file() {

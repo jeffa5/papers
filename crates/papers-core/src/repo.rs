@@ -8,7 +8,7 @@ use anyhow::Context;
 
 use crate::author::Author;
 use crate::label::Label;
-use crate::paper::Paper;
+use crate::paper::{LoadedPaper, PaperMeta};
 use crate::tag::Tag;
 
 pub const PROHIBITED_PATH_CHARS: &[char] =
@@ -43,7 +43,7 @@ impl Repo {
         authors: BTreeSet<Author>,
         tags: BTreeSet<Tag>,
         labels: BTreeSet<Label>,
-    ) -> anyhow::Result<Paper> {
+    ) -> anyhow::Result<PaperMeta> {
         let filename = if let Some(file) = file {
             let file = file.as_ref();
             let file = canonicalize(file).context("canonicalising the filename")?;
@@ -54,7 +54,7 @@ impl Repo {
         } else {
             None
         };
-        let paper = Paper {
+        let paper = PaperMeta {
             title,
             url,
             filename,
@@ -64,30 +64,33 @@ impl Repo {
             created_at: now_naive(),
             modified_at: now_naive(),
         };
+
         let paper_path = self.get_path(&paper);
-        if self.root.join(&paper_path).is_file() {
+        let paper_path = self.root.join(&paper_path);
+
+        if paper_path.is_file() {
             anyhow::bail!("Paper entry already exists for {:?}", paper_path);
         }
-        self.write_paper(&paper, "")?;
+        self.write_paper(&paper_path, &paper, "")?;
 
         Ok(paper)
     }
 
-    pub fn import(&mut self, paper: Paper) -> anyhow::Result<()> {
-        self.write_paper(&paper, "")
+    pub fn import(&mut self, paper: PaperMeta) -> anyhow::Result<()> {
+        let paper_path = self.get_path(&paper);
+        self.write_paper(&paper_path, &paper, "")
     }
 
-    pub fn write_paper(&self, paper: &Paper, notes: &str) -> anyhow::Result<()> {
+    pub fn write_paper(&self, path: &Path, paper: &PaperMeta, notes: &str) -> anyhow::Result<()> {
         let data_string = serde_yaml::to_string(&paper)?;
 
-        let path = self.get_path(paper);
         let path = self.root.join(path);
         let mut file = File::create(path)?;
         write!(file, "---\n{data_string}---\n{notes}")?;
         Ok(())
     }
 
-    pub fn update(&mut self, paper_path: &Path, file: Option<&Path>) -> anyhow::Result<()> {
+    pub fn update(&mut self, paper: &LoadedPaper, file: Option<&Path>) -> anyhow::Result<()> {
         let filename = if let Some(file) = file {
             if !canonicalize(file)?
                 .parent()
@@ -105,10 +108,10 @@ impl Repo {
             None
         };
 
-        let (mut data, notes) = self.get_paper_with_notes(&paper_path)?;
-        data.filename = filename;
+        let mut paper = self.get_paper(&paper.path)?;
+        paper.meta.filename = filename;
 
-        self.write_paper(&data, &notes)?;
+        self.write_paper(&paper.path, &paper.meta, &paper.notes)?;
 
         Ok(())
     }
@@ -120,14 +123,14 @@ impl Repo {
         match_authors: Vec<Author>,
         match_tags: Vec<Tag>,
         match_labels: Vec<Label>,
-    ) -> anyhow::Result<Vec<(PathBuf, Paper)>> {
+    ) -> anyhow::Result<Vec<LoadedPaper>> {
         let papers = self.all_papers();
         let mut filtered_papers = Vec::new();
         let match_title = match_title.map(|t| t.to_lowercase());
         let match_file = match_file.map(|t| t.to_lowercase());
-        for (path, paper) in papers {
+        for paper in papers {
             if let Some(match_file) = match_file.as_ref() {
-                if let Some(filename) = paper.filename.as_ref() {
+                if let Some(filename) = paper.meta.filename.as_ref() {
                     if !filename.to_lowercase().contains(match_file) {
                         continue;
                     }
@@ -137,39 +140,37 @@ impl Repo {
             }
 
             if let Some(match_title) = match_title.as_ref() {
-                if !paper.title.to_lowercase().contains(match_title) {
+                if !paper.meta.title.to_lowercase().contains(match_title) {
                     continue;
                 }
             }
 
             // filter papers down
-            if !match_authors.iter().all(|a| paper.authors.contains(a)) {
+            if !match_authors.iter().all(|a| paper.meta.authors.contains(a)) {
                 continue;
             }
 
-            // TODO: push this into the DB layer
             // filter papers down
-            if !match_tags.iter().all(|t| paper.tags.contains(t)) {
+            if !match_tags.iter().all(|t| paper.meta.tags.contains(t)) {
                 continue;
             }
 
-            // TODO: push this into the DB layer
             // filter papers down
-            if !match_labels.iter().all(|l| paper.labels.contains(l)) {
+            if !match_labels.iter().all(|l| paper.meta.labels.contains(l)) {
                 continue;
             }
 
-            filtered_papers.push((path, paper));
+            filtered_papers.push(paper);
         }
         Ok(filtered_papers)
     }
 
-    pub fn get_path(&self, paper: &Paper) -> PathBuf {
+    pub fn get_path(&self, paper: &PaperMeta) -> PathBuf {
         let title = paper.title.replace(PROHIBITED_PATH_CHARS, "");
         PathBuf::from(&title).with_extension("md")
     }
 
-    pub fn all_papers(&self) -> Vec<(PathBuf, Paper)> {
+    pub fn all_papers(&self) -> Vec<LoadedPaper> {
         let mut papers = Vec::new();
         let entries = read_dir(&self.root);
         if let Ok(entries) = entries {
@@ -178,7 +179,7 @@ impl Repo {
                     let path = entry.path();
                     if path.extension().and_then(|e| e.to_str()) == Some("md") {
                         if let Ok(paper) = self.get_paper(&path) {
-                            papers.push((path.strip_prefix(&self.root).unwrap().to_owned(), paper));
+                            papers.push(paper);
                         }
                     }
                 }
@@ -187,24 +188,26 @@ impl Repo {
         papers
     }
 
-    pub fn get_paper(&self, path: &Path) -> anyhow::Result<Paper> {
-        self.get_paper_with_notes(path).map(|(d, _)| d)
-    }
-
-    pub fn get_paper_with_notes(&self, path: &Path) -> anyhow::Result<(Paper, String)> {
+    pub fn get_paper(&self, path: &Path) -> anyhow::Result<LoadedPaper> {
         let mut file_content = String::new();
         let path = if path.is_absolute() {
             path.to_owned()
         } else {
             self.root.join(path)
         };
-        let mut file = File::open(path)?;
+        let mut file = File::open(&path)?;
         file.read_to_string(&mut file_content)?;
         let matter = Matter::<YAML>::new();
         let file_content = matter.parse(&file_content);
         if let Some(data) = file_content.data {
-            let paper = data.deserialize::<Paper>()?;
-            Ok((paper, file_content.content))
+            let paper = data.deserialize::<PaperMeta>()?;
+            let path = path.strip_prefix(&self.root).unwrap().to_owned();
+            let notes = file_content.content;
+            Ok(LoadedPaper {
+                path,
+                meta: paper,
+                notes,
+            })
         } else {
             anyhow::bail!("No content for file! Is there any frontmatter?")
         }

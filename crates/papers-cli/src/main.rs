@@ -1,7 +1,7 @@
 use clap::Parser;
 use directories::ProjectDirs;
 use std::io;
-use tracing::{debug, Level};
+use tracing::debug;
 use tracing_subscriber::EnvFilter;
 
 use papers_cli_lib::cli::Cli;

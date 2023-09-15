@@ -91,5 +91,10 @@ fn test_add_file_from_neighbour() {
 #[test]
 fn test_add_interactive() {
     let mut f = Fixture::new();
-    f.check_ok_with_stdin("add", "", expect![""], expect!["error: Failed to add paper: Is a directory (os error 21)"]);
+    f.check_ok_with_stdin(
+        "add",
+        "",
+        expect![""],
+        expect!["error: Failed to add paper: Is a directory (os error 21)"],
+    );
 }
