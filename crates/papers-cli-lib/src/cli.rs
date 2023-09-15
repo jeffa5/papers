@@ -99,6 +99,10 @@ pub enum SubCommand {
         /// Output the filtered selection of papers in different formats.
         #[clap(long, short, value_enum, default_value_t)]
         output: OutputStyle,
+
+        /// Sort entries by a criterion.
+        #[clap(long, value_enum, default_value_t)]
+        sort: SortBy,
     },
     /// Automatically rename files to match their entry in the database.
     RenameFiles {
@@ -330,13 +334,20 @@ impl SubCommand {
                 tags,
                 labels,
                 output,
+                sort,
             } => {
                 let mut repo = load_repo(config)?;
-                let papers = repo
+                let mut papers = repo
                     .list(file, title, authors, tags, labels)?
                     .into_iter()
                     .map(|p| p.1)
                     .collect::<Vec<_>>();
+
+                papers.sort_by_key(|p| match sort {
+                    SortBy::Title => p.title.clone(),
+                    SortBy::CreatedAt => p.created_at.to_string(),
+                    SortBy::ModifiedAt => p.modified_at.to_string(),
+                });
 
                 match output {
                     OutputStyle::Table => {
@@ -717,6 +728,18 @@ fn extract_authors(file: &Path) -> BTreeSet<Author> {
     }
     warn!("Couldn't find authors in pdf metadata");
     BTreeSet::new()
+}
+
+/// Field to sort entries by.
+#[derive(Debug, Default, Clone, ValueEnum)]
+pub enum SortBy {
+    /// Sort by title.
+    #[default]
+    Title,
+    /// Sort by creation.
+    CreatedAt,
+    /// Sort by modification.
+    ModifiedAt,
 }
 
 /// Output style for lists.
