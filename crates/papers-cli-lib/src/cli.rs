@@ -1,5 +1,5 @@
 use std::{
-    collections::BTreeSet,
+    collections::{BTreeMap, BTreeSet},
     fs::{read_dir, rename, File},
     io::{stdin, stdout},
     path::{Path, PathBuf},
@@ -332,7 +332,11 @@ impl SubCommand {
                 output,
             } => {
                 let mut repo = load_repo(config)?;
-                let papers = repo.list(file, title, authors, tags, labels)?;
+                let papers = repo
+                    .list(file, title, authors, tags, labels)?
+                    .into_iter()
+                    .map(|p| p.1)
+                    .collect::<Vec<_>>();
 
                 match output {
                     OutputStyle::Table => {
@@ -352,61 +356,61 @@ impl SubCommand {
                 dry_run,
             } => {
                 let mut repo = load_repo(config)?;
-                for paper in repo.all_papers() {
+                let root = repo.root().to_owned();
+                for (paper_path, paper) in repo.all_papers() {
+                    let new_name = strategies.iter().find_map(|s| s.rename(&paper).ok());
+                    let new_name = if let Some(new_name) = new_name {
+                        new_name
+                    } else {
+                        error!("Failed to generate new name for paper");
+                        continue;
+                    };
+
                     if let Some(filename) = &paper.filename {
-                        let path = repo.root().join(filename);
-                        if !path.is_file() {
-                            error!("Path for paper {:?} wasn't a file", path);
-                            continue;
+                        let path = root.join(filename);
+                        if path.is_file() {
+                            let new_extension = if let Ok(Some(kind)) = infer::get_from_path(&path)
+                            {
+                                debug!(?path, ?kind, "Detected filetype");
+                                kind.extension()
+                            } else {
+                                debug!(?path, "Failed to detect filetype");
+                                path.extension().unwrap_or_default().to_str().unwrap()
+                            };
+
+                            // the file exists
+                            // make the new name and check that file doesn't exist
+
+                            let new_path = if let Some(parent) = path.parent() {
+                                parent.join(&new_name).with_extension(new_extension)
+                            } else {
+                                PathBuf::from(&new_name).with_extension(new_extension)
+                            };
+
+                            if new_path != path {
+                                if !new_path.exists() {
+                                    // old exists, new doesn't exist, do the rename
+                                    println!("Renaming {path:?} to {new_path:?}");
+                                    if !dry_run {
+                                        rename(&path, &new_path).unwrap();
+                                        repo.update(&paper_path, Some(&new_path)).unwrap();
+                                    }
+                                }
+                            }
                         }
-
-                        let new_extension = if let Ok(Some(kind)) = infer::get_from_path(&path) {
-                            debug!(?path, ?kind, "Detected filetype");
-                            kind.extension()
-                        } else {
-                            debug!(?path, "Failed to detect filetype");
-                            path.extension().unwrap_or_default().to_str().unwrap()
-                        };
-
-                        // the file exists
-                        // make the new name and check that file doesn't exist
-                        let new_name = strategies.iter().find_map(|s| s.rename(&paper).ok());
-                        let new_name = if let Some(new_name) = new_name {
-                            new_name
-                        } else {
-                            error!("Failed to generate new name for paper");
-                            continue;
-                        };
-
-                        let new_path = if let Some(parent) = path.parent() {
-                            parent.join(new_name).with_extension(new_extension)
-                        } else {
-                            PathBuf::from(new_name).with_extension(new_extension)
-                        };
-
-                        if new_path == path {
-                            println!("Skipping paper as already has the correct name");
-                            continue;
-                        }
-                        if new_path.exists() {
-                            error!("New path for paper already exists: {:?}", new_path);
-                            continue;
-                        }
-
-                        // old exists, new doesn't exist, do the rename
-                        if !dry_run {
-                            println!("Renaming {path:?} to {new_path:?}");
-                            rename(&path, &new_path).unwrap();
-                            repo.update(&paper, Some(&new_path)).unwrap();
-                            let paper_path = repo.get_path(&paper);
-                            let new_paper_path = new_path.with_extension("md");
-                            println!("Renaming {paper_path:?} to {new_paper_path:?}");
-                            rename(&paper_path, new_paper_path).unwrap();
-                        }
-                        println!("Renamed {:?} to {:?}", path, new_path);
                     } else {
                         debug!("Skipping paper");
-                        println!("Skipping paper as it has no file associated")
+                    }
+
+                    let new_paper_path = root.join(new_name).with_extension("md");
+                    let paper_path = root.join(paper_path);
+                    if !new_paper_path.exists() {
+                        if paper_path != new_paper_path {
+                            println!("Renaming {paper_path:?} to {new_paper_path:?}");
+                            if !dry_run {
+                                rename(&paper_path, new_paper_path).unwrap();
+                            }
+                        }
                     }
                 }
             }
@@ -417,7 +421,7 @@ impl SubCommand {
                 let path = match path {
                     Some(path) => path,
                     None => {
-                        let all_papers = repo.all_papers();
+                        let all_papers = repo.all_papers().into_iter().map(|n| n.1).collect();
 
                         match select_paper(all_papers) {
                             Some(p) => repo.get_path(&p),
@@ -464,9 +468,18 @@ impl SubCommand {
                 let repo = load_repo(config)?;
                 let root = repo.root();
                 let entries = read_dir(&root)?;
+                let mut other_files = BTreeMap::new();
+                let mut paths = Vec::new();
                 for entry in entries {
                     let entry = entry?;
                     let path = entry.path();
+                    if path.is_file() {
+                        paths.push(path);
+                    }
+                }
+                paths.sort();
+
+                for path in paths {
                     if path.extension().and_then(|e| e.to_str()) == Some("md") {
                         let paper = repo.get_paper(&path)?;
                         let expected_path = repo.get_path(&paper);
@@ -485,9 +498,30 @@ impl SubCommand {
                         if let Some(filename) = paper.filename {
                             let abs_filename = root.join(&filename);
                             if !abs_filename.is_file() {
-                                warn!(?current_path, ?filename, "File is not at the named location");
+                                warn!(
+                                    ?current_path,
+                                    ?filename,
+                                    "File is not at the named location"
+                                );
+                            } else {
+                                other_files.insert(filename, true);
                             }
                         }
+                    } else {
+                        other_files
+                            .entry(
+                                path.strip_prefix(root)
+                                    .unwrap()
+                                    .to_string_lossy()
+                                    .into_owned(),
+                            )
+                            .or_default();
+                    }
+                }
+
+                for (path, matched) in other_files {
+                    if !matched {
+                        warn!(?path, "Found unmatched file");
                     }
                 }
             }

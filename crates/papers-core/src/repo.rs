@@ -83,11 +83,11 @@ impl Repo {
         let path = self.get_path(paper);
         let path = self.root.join(path);
         let mut file = File::create(path)?;
-        write!(file, "---\n{data_string}\n---\n{notes}")?;
+        write!(file, "---\n{data_string}---\n{notes}")?;
         Ok(())
     }
 
-    pub fn update(&mut self, paper: &Paper, file: Option<&Path>) -> anyhow::Result<()> {
+    pub fn update(&mut self, paper_path: &Path, file: Option<&Path>) -> anyhow::Result<()> {
         let filename = if let Some(file) = file {
             if !canonicalize(file)?
                 .parent()
@@ -105,7 +105,6 @@ impl Repo {
             None
         };
 
-        let paper_path = self.get_path(paper);
         let (mut data, notes) = self.get_paper_with_notes(&paper_path)?;
         data.filename = filename;
 
@@ -121,12 +120,12 @@ impl Repo {
         match_authors: Vec<Author>,
         match_tags: Vec<Tag>,
         match_labels: Vec<Label>,
-    ) -> anyhow::Result<Vec<Paper>> {
+    ) -> anyhow::Result<Vec<(PathBuf, Paper)>> {
         let papers = self.all_papers();
         let mut filtered_papers = Vec::new();
         let match_title = match_title.map(|t| t.to_lowercase());
         let match_file = match_file.map(|t| t.to_lowercase());
-        for paper in papers {
+        for (path, paper) in papers {
             if let Some(match_file) = match_file.as_ref() {
                 if let Some(filename) = paper.filename.as_ref() {
                     if !filename.to_lowercase().contains(match_file) {
@@ -160,7 +159,7 @@ impl Repo {
                 continue;
             }
 
-            filtered_papers.push(paper);
+            filtered_papers.push((path, paper));
         }
         Ok(filtered_papers)
     }
@@ -170,7 +169,7 @@ impl Repo {
         PathBuf::from(&title).with_extension("md")
     }
 
-    pub fn all_papers(&self) -> Vec<Paper> {
+    pub fn all_papers(&self) -> Vec<(PathBuf, Paper)> {
         let mut papers = Vec::new();
         let entries = read_dir(&self.root);
         if let Ok(entries) = entries {
@@ -179,7 +178,7 @@ impl Repo {
                     let path = entry.path();
                     if path.extension().and_then(|e| e.to_str()) == Some("md") {
                         if let Ok(paper) = self.get_paper(&path) {
-                            papers.push(paper);
+                            papers.push((path.strip_prefix(&self.root).unwrap().to_owned(), paper));
                         }
                     }
                 }
