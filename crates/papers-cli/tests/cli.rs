@@ -19,6 +19,7 @@ fn test_help() {
               open          Open the pdf file for the given paper
               completions   Generate cli completion files
               import        Import a list of tasks in json format
+              doctor        Check consistency of things in the repo
               help          Print this message or the help of the given subcommand(s)
 
             Options:

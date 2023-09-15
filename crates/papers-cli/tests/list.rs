@@ -44,6 +44,16 @@ fn test_help() {
                       - json:  Json format
                       - yaml:  Yaml format
 
+                  --sort <SORT>
+                      Sort entries by a criterion
+
+                      [default: title]
+
+                      Possible values:
+                      - title:       Sort by title
+                      - created-at:  Sort by creation
+                      - modified-at: Sort by modification
+
               -h, --help
                       Print help (see a summary with '-h')"#]],
         expect![""],
