@@ -498,7 +498,10 @@ impl SubCommand {
                         debug!(?expected_path, ?current_path, "Checking paper path");
                         // check that the paper notes are at the right location
                         if expected_path != current_path {
-                            warn!(?current_path, ?expected_path, "Paper notes at wrong path");
+                            println!(
+                                "Paper notes at wrong path. current={:?}, expected={:?}",
+                                current_path, expected_path
+                            );
                             if fix {
                                 info!(?current_path, ?expected_path, "Moving paper notes");
                                 rename(root.join(current_path), root.join(expected_path))?;
@@ -509,10 +512,10 @@ impl SubCommand {
                         if let Some(filename) = paper.meta.filename {
                             let abs_filename = root.join(&filename);
                             if !abs_filename.is_file() {
-                                warn!(
-                                    ?current_path,
-                                    ?filename,
-                                    "File is not at the named location"
+                                println!(
+                                    "File is not at the named location. current={:?}, filename={:?}",
+                                    current_path,
+                                    filename,
                                 );
                             } else {
                                 other_files.insert(filename, true);
