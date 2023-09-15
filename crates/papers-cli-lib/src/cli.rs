@@ -535,7 +535,7 @@ impl SubCommand {
 
                 for (path, matched) in other_files {
                     if !matched {
-                        warn!(?path, "Found unmatched file");
+                        println!("Found unmatched file {:?}", path);
                     }
                 }
             }
