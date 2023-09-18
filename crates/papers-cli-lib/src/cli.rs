@@ -3,12 +3,13 @@ use std::{
     fs::{read_dir, rename, File},
     io::{stdin, stdout},
     path::{Path, PathBuf},
+    process::Command,
 };
 
 use anyhow::Context;
 use clap::{CommandFactory, ValueEnum};
 use clap_complete::{generate_to, Generator, Shell};
-use papers_core::{author::Author, paper::PaperMeta, repo::Repo, tag::Tag};
+use papers_core::{author::Author, paper::LoadedPaper, paper::PaperMeta, repo::Repo, tag::Tag};
 use pdf::file::FileOptions;
 use reqwest::Url;
 use tracing::{debug, info, warn};
@@ -115,9 +116,19 @@ pub enum SubCommand {
         #[clap(long)]
         dry_run: bool,
     },
+    /// Edit the notes file for a paper.
+    Edit {
+        /// Path of the paper to edit, fuzzy selected if not given.
+        #[clap()]
+        path: Option<PathBuf>,
+
+        /// Open the pdf file too.
+        #[clap(long)]
+        open: bool,
+    },
     /// Open the pdf file for the given paper.
     Open {
-        /// Id of the paper to open, fuzzy selected if not given.
+        /// Path of the paper to open, fuzzy selected if not given.
         #[clap()]
         path: Option<PathBuf>,
     },
@@ -423,32 +434,24 @@ impl SubCommand {
                     }
                 }
             }
+            Self::Edit { path, open } => {
+                let repo = load_repo(config)?;
+                let root = repo.root().to_owned();
+
+                let paper = get_or_select_paper(&repo, path.as_deref())?;
+
+                if open {
+                    open_file(&paper.meta, &root)?;
+                }
+                edit(&root.join(paper.path))?;
+            }
             Self::Open { path } => {
                 let repo = load_repo(config)?;
                 let root = repo.root().to_owned();
 
-                let path = match path {
-                    Some(path) => path,
-                    None => {
-                        let all_papers = repo.all_papers();
+                let paper = get_or_select_paper(&repo, path.as_deref())?;
 
-                        match select_paper(all_papers) {
-                            Some(p) => p.path,
-                            None => {
-                                anyhow::bail!("No paper selected");
-                            }
-                        }
-                    }
-                };
-
-                let paper = repo.get_paper(&path)?;
-                if let Some(filename) = &paper.meta.filename {
-                    let path = root.join(filename);
-                    info!(?path, "Opening");
-                    open::that(path)?;
-                } else {
-                    info!("No file associated with that paper");
-                }
+                open_file(&paper.meta, &root)?;
             }
             Self::Completions { shell, dir } => {
                 let path = gen_completions(shell, &dir);
@@ -770,6 +773,38 @@ where
         outdir,   // We need to specify where to write to
     )?;
     Ok(path)
+}
+
+fn edit(path: &Path) -> anyhow::Result<()> {
+    let editor = std::env::var("EDITOR").unwrap_or_else(|_| "vim".to_owned());
+    Command::new(editor).args([path.to_owned()]).status()?;
+    Ok(())
+}
+
+fn open_file(meta: &PaperMeta, root: &Path) -> anyhow::Result<()> {
+    if let Some(filename) = &meta.filename {
+        let path = root.join(filename);
+        info!(?path, "Opening");
+        open::that(path)?;
+    } else {
+        info!("No file associated with that paper");
+    }
+    Ok(())
+}
+
+fn get_or_select_paper(repo: &Repo, path: Option<&Path>) -> anyhow::Result<LoadedPaper> {
+    match path {
+        Some(path) => repo.get_paper(path),
+        None => {
+            let all_papers = repo.all_papers();
+            match select_paper(all_papers) {
+                Some(p) => Ok(p),
+                None => {
+                    anyhow::bail!("No paper selected");
+                }
+            }
+        }
+    }
 }
 
 #[test]
