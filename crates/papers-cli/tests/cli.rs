@@ -16,6 +16,7 @@ fn test_help() {
               add           Add a paper to the repo
               list          List the papers stored with this repo
               rename-files  Automatically rename files to match their entry in the database
+              edit          Edit the notes file for a paper
               open          Open the pdf file for the given paper
               completions   Generate cli completion files
               import        Import a list of tasks in json format

@@ -6,17 +6,18 @@ use expect_test::expect;
 fn test_help() {
     let mut f = Fixture::new();
     f.check_ok(
-        "open --help",
+        "edit --help",
         expect![[r#"
-            Open the pdf file for the given paper
+            Edit the notes file for a paper
 
-            Usage: papers open [OPTIONS] [PATH]
+            Usage: papers edit [OPTIONS] [PATH]
 
             Arguments:
-              [PATH]  Path of the paper to open, fuzzy selected if not given
+              [PATH]  Path of the paper to edit, fuzzy selected if not given
 
             Options:
               -c, --config-file <CONFIG_FILE>    Config file path to load
+                  --open                         Open the pdf file too
                   --default-repo <DEFAULT_REPO>  Default repo to use if not found in parents of current directory
               -h, --help                         Print help"#]],
         expect![""],
