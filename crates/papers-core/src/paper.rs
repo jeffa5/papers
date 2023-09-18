@@ -14,7 +14,7 @@ pub struct LoadedPaper {
 pub struct PaperMeta {
     pub title: String,
     pub url: Option<String>,
-    pub filename: Option<String>,
+    pub filename: Option<PathBuf>,
     pub tags: BTreeSet<Tag>,
     pub labels: BTreeSet<Label>,
     pub authors: BTreeSet<Author>,

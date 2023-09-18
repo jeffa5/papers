@@ -50,7 +50,7 @@ impl Repo {
             let file = file
                 .strip_prefix(&self.root)
                 .context("File does not live in the root")?;
-            Some(file.to_string_lossy().into_owned())
+            Some(file.to_owned())
         } else {
             None
         };
@@ -90,28 +90,29 @@ impl Repo {
         Ok(())
     }
 
-    pub fn update(&mut self, paper: &LoadedPaper, file: Option<&Path>) -> anyhow::Result<()> {
+    pub fn update(&self, paper: &LoadedPaper, file: Option<&Path>) -> anyhow::Result<()> {
         let filename = if let Some(file) = file {
-            if !canonicalize(file)?
+            if !canonicalize(file)
+                .with_context(|| format!("Canoncalizing file path {:?}", file))?
                 .parent()
                 .unwrap()
                 .starts_with(&self.root)
             {
-                anyhow::bail!(
-                    "File doesn't live in the root {}",
-                    self.root.to_string_lossy()
-                )
+                anyhow::bail!("File doesn't live in the root {:?}", self.root)
             }
 
-            Some(file.file_name().unwrap().to_string_lossy().into_owned())
+            Some(file.file_name().unwrap_or_default().into())
         } else {
             None
         };
 
-        let mut paper = self.get_paper(&paper.path)?;
+        let mut paper = self
+            .get_paper(&paper.path)
+            .with_context(|| format!("Opening paper notes at {:?}", paper.path))?;
         paper.meta.filename = filename;
 
-        self.write_paper(&paper.path, &paper.meta, &paper.notes)?;
+        self.write_paper(&paper.path, &paper.meta, &paper.notes)
+            .with_context(|| format!("Writing paper {:?}", paper.path))?;
 
         Ok(())
     }
@@ -131,7 +132,8 @@ impl Repo {
         for paper in papers {
             if let Some(match_file) = match_file.as_ref() {
                 if let Some(filename) = paper.meta.filename.as_ref() {
-                    if !filename.to_lowercase().contains(match_file) {
+                    let filename_str = filename.to_string_lossy().into_owned();
+                    if !filename_str.to_lowercase().contains(match_file) {
                         continue;
                     }
                 } else {

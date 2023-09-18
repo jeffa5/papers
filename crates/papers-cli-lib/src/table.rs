@@ -46,9 +46,10 @@ impl TablePaper {
             Ok(duration) => duration,
             Err(_) => (-age).to_std().unwrap(),
         };
+        let filename = p.filename.map(|f| f.to_string_lossy().into_owned());
         Self {
             url: p.url,
-            filename: p.filename,
+            filename,
             title: p.title,
             tags: p.tags,
             labels: p.labels,

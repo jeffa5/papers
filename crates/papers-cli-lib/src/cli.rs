@@ -375,7 +375,7 @@ impl SubCommand {
                 strategies,
                 dry_run,
             } => {
-                let mut repo = load_repo(config)?;
+                let repo = load_repo(config)?;
                 let root = repo.root().to_owned();
                 for paper in repo.all_papers() {
                     let new_name = strategies.iter().find_map(|s| s.rename(&paper.meta).ok());
@@ -506,13 +506,16 @@ impl SubCommand {
                                 current_path, expected_path
                             );
                             if fix {
-                                info!(?current_path, ?expected_path, "Moving paper notes");
-                                rename(root.join(current_path), root.join(expected_path))?;
+                                println!(
+                                    "Moving paper notes. current={:?}, expected={:?}",
+                                    current_path, expected_path
+                                );
+                                rename(root.join(current_path), root.join(&expected_path))?;
                             }
                         }
 
                         // check that the paper's file exists
-                        if let Some(filename) = paper.meta.filename {
+                        if let Some(filename) = paper.meta.filename.as_ref() {
                             let abs_filename = root.join(&filename);
                             if !abs_filename.is_file() {
                                 println!(
@@ -521,17 +524,36 @@ impl SubCommand {
                                     filename,
                                 );
                             } else {
-                                other_files.insert(filename, true);
+                                other_files.insert(filename.clone(), true);
+
+                                // check if it should be renamed
+                                let expected_path_document = expected_path
+                                    .with_extension(abs_filename.extension().unwrap_or_default());
+                                if filename != &expected_path_document {
+                                    println!(
+                                        "File at wrong path. current={:?}, expected={:?}",
+                                        filename, expected_path_document
+                                    );
+                                    if fix {
+                                        println!(
+                                            "Moving file. current={:?}, expected={:?}",
+                                            filename, expected_path_document
+                                        );
+                                        let expected_path_document =
+                                            root.join(expected_path_document);
+                                        // logic from rename-files
+                                        rename(
+                                            root.join(filename),
+                                            root.join(&expected_path_document),
+                                        )?;
+                                        repo.update(&paper, Some(&expected_path_document))?;
+                                    }
+                                }
                             }
                         }
                     } else {
                         other_files
-                            .entry(
-                                path.strip_prefix(root)
-                                    .unwrap()
-                                    .to_string_lossy()
-                                    .into_owned(),
-                            )
+                            .entry(path.strip_prefix(root).unwrap().to_owned())
                             .or_default();
                     }
                 }
@@ -665,7 +687,7 @@ fn add<P: AsRef<Path>>(
     }
 
     let paper = repo.add(file, url, title, authors, tags, labels)?;
-    info!(filename = paper.filename, "Added paper");
+    info!(filename = ?paper.filename, "Added paper");
 
     Ok(paper)
 }
