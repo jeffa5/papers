@@ -1,4 +1,4 @@
-use papers_core::paper::LoadedPaper;
+use papers_core::paper::{LoadedPaper, PaperMeta};
 use skim::prelude::*;
 use std::sync::Arc;
 
@@ -56,15 +56,35 @@ fn select_papers_inner(papers: Vec<LoadedPaper>, multi: bool) -> Vec<LoadedPaper
 
 impl SkimItem for FuzzyPaper {
     fn text(&self) -> Cow<str> {
-        let title = &self.0.meta.title;
-        let authors = self
-            .0
-            .meta
-            .authors
+        let PaperMeta {
+            title,
+            url: _,
+            filename: _,
+            tags,
+            labels,
+            authors,
+            created_at: _,
+            modified_at: _,
+        } = &self.0.meta;
+        let authors = authors
             .iter()
             .map(|a| a.to_string())
             .collect::<Vec<_>>()
-            .join(", ");
-        format!("title:{:?} authors:{:?}", title, authors).into()
+            .join(",");
+        let tags = tags
+            .iter()
+            .map(|t| t.to_string())
+            .collect::<Vec<_>>()
+            .join(",");
+        let labels = labels
+            .iter()
+            .map(|l| l.to_string())
+            .collect::<Vec<_>>()
+            .join(",");
+        format!(
+            "title:{:?} authors:{:?} tags:{:?} labels:{:?}",
+            title, authors, tags, labels
+        )
+        .into()
     }
 }
