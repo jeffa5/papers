@@ -3,14 +3,14 @@ use std::{collections::BTreeSet, path::PathBuf};
 use crate::{author::Author, label::Label, tag::Tag};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct LoadedPaper {
     pub path: PathBuf,
     pub meta: PaperMeta,
     pub notes: String,
 }
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PaperMeta {
     pub title: String,
     pub url: Option<String>,

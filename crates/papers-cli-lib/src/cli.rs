@@ -438,16 +438,22 @@ impl SubCommand {
                 let repo = load_repo(config)?;
                 let root = repo.root().to_owned();
 
-                let paper = get_or_select_paper(&repo, path.as_deref())?;
+                let original_paper = get_or_select_paper(&repo, path.as_deref())?;
 
                 if open {
-                    open_file(&paper.meta, &root)?;
+                    open_file(&original_paper.meta, &root)?;
                 }
-                edit(&root.join(&paper.path))?;
+                edit(&root.join(&original_paper.path))?;
 
                 // now set the modified time
-                let paper = repo.get_paper(&paper.path)?;
-                repo.write_paper(&paper.path, paper.meta, &paper.notes)?;
+                let updated_paper = repo.get_paper(&original_paper.path)?;
+                if updated_paper != original_paper {
+                    repo.write_paper(
+                        &updated_paper.path,
+                        updated_paper.meta,
+                        &updated_paper.notes,
+                    )?;
+                }
             }
             Self::Open { path } => {
                 let repo = load_repo(config)?;
