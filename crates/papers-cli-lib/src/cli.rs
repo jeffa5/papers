@@ -696,7 +696,12 @@ fn add<P: AsRef<Path>>(
         }
     }
 
-    let paper = repo.add(file, url, title, authors, tags, labels)?;
+    let mut labels_map = BTreeMap::new();
+    for label in labels {
+        labels_map.insert(label.key().to_owned(), label.value().to_owned());
+    }
+
+    let paper = repo.add(file, url, title, authors, tags, labels_map)?;
     info!(filename = ?paper.filename, "Added paper");
 
     Ok(paper)

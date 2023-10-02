@@ -78,7 +78,7 @@ impl SkimItem for FuzzyPaper {
             .join(",");
         let labels = labels
             .iter()
-            .map(|l| l.to_string())
+            .map(|(k, v)| format!("{k}={v}"))
             .collect::<Vec<_>>()
             .join(",");
         format!(

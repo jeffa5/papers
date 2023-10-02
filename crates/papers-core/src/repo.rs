@@ -1,5 +1,5 @@
 use gray_matter::{engine::YAML, Matter};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{canonicalize, read_dir, File};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
@@ -42,7 +42,7 @@ impl Repo {
         title: String,
         authors: BTreeSet<Author>,
         tags: BTreeSet<Tag>,
-        labels: BTreeSet<Label>,
+        labels: BTreeMap<String, String>,
     ) -> anyhow::Result<PaperMeta> {
         let filename = if let Some(file) = file {
             let file = file.as_ref();
@@ -81,7 +81,12 @@ impl Repo {
         self.write_paper(&paper_path, paper, "")
     }
 
-    pub fn write_paper(&self, path: &Path, mut paper: PaperMeta, notes: &str) -> anyhow::Result<()> {
+    pub fn write_paper(
+        &self,
+        path: &Path,
+        mut paper: PaperMeta,
+        notes: &str,
+    ) -> anyhow::Result<()> {
         paper.modified_at = now_naive();
         let data_string = serde_yaml::to_string(&paper)?;
 
@@ -159,7 +164,13 @@ impl Repo {
             }
 
             // filter papers down
-            if !match_labels.iter().all(|l| paper.meta.labels.contains(l)) {
+            if !match_labels.iter().all(|l| {
+                paper
+                    .meta
+                    .labels
+                    .get(l.key())
+                    .map_or(false, |v| v == l.value())
+            }) {
                 continue;
             }
 

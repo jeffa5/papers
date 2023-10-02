@@ -47,12 +47,13 @@ impl TablePaper {
             Err(_) => (-age).to_std().unwrap(),
         };
         let filename = p.filename.map(|f| f.to_string_lossy().into_owned());
+        let labels = p.labels.iter().map(|(k, v)| Label::new(k, v)).collect();
         Self {
             url: p.url,
             filename,
             title: p.title,
             tags: p.tags,
-            labels: p.labels,
+            labels,
             authors: p.authors,
             age,
         }

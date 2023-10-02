@@ -1,6 +1,9 @@
-use std::{collections::BTreeSet, path::PathBuf};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    path::PathBuf,
+};
 
-use crate::{author::Author, label::Label, tag::Tag};
+use crate::{author::Author, tag::Tag};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -16,7 +19,7 @@ pub struct PaperMeta {
     pub url: Option<String>,
     pub filename: Option<PathBuf>,
     pub tags: BTreeSet<Tag>,
-    pub labels: BTreeSet<Label>,
+    pub labels: BTreeMap<String, String>,
     pub authors: BTreeSet<Author>,
     pub created_at: chrono::NaiveDateTime,
     pub modified_at: chrono::NaiveDateTime,
