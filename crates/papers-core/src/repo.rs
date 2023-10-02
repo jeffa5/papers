@@ -71,17 +71,18 @@ impl Repo {
         if paper_path.is_file() {
             anyhow::bail!("Paper entry already exists for {:?}", paper_path);
         }
-        self.write_paper(&paper_path, &paper, "")?;
+        self.write_paper(&paper_path, paper.clone(), "")?;
 
         Ok(paper)
     }
 
     pub fn import(&mut self, paper: PaperMeta) -> anyhow::Result<()> {
         let paper_path = self.get_path(&paper);
-        self.write_paper(&paper_path, &paper, "")
+        self.write_paper(&paper_path, paper, "")
     }
 
-    pub fn write_paper(&self, path: &Path, paper: &PaperMeta, notes: &str) -> anyhow::Result<()> {
+    pub fn write_paper(&self, path: &Path, mut paper: PaperMeta, notes: &str) -> anyhow::Result<()> {
+        paper.modified_at = now_naive();
         let data_string = serde_yaml::to_string(&paper)?;
 
         let path = self.root.join(path);
@@ -111,7 +112,7 @@ impl Repo {
             .with_context(|| format!("Opening paper notes at {:?}", paper.path))?;
         paper.meta.filename = filename;
 
-        self.write_paper(&paper.path, &paper.meta, &paper.notes)
+        self.write_paper(&paper.path, paper.meta, &paper.notes)
             .with_context(|| format!("Writing paper {:?}", paper.path))?;
 
         Ok(())

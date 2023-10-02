@@ -443,7 +443,11 @@ impl SubCommand {
                 if open {
                     open_file(&paper.meta, &root)?;
                 }
-                edit(&root.join(paper.path))?;
+                edit(&root.join(&paper.path))?;
+
+                // now set the modified time
+                let paper = repo.get_paper(&paper.path)?;
+                repo.write_paper(&paper.path, paper.meta, &paper.notes)?;
             }
             Self::Open { path } => {
                 let repo = load_repo(config)?;
