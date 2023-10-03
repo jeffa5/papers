@@ -9,6 +9,7 @@ use anyhow::Context;
 use crate::author::Author;
 use crate::label::Label;
 use crate::paper::{LoadedPaper, PaperMeta};
+use crate::primitive::Primitive;
 use crate::tag::Tag;
 
 pub const PROHIBITED_PATH_CHARS: &[char] =
@@ -42,7 +43,7 @@ impl Repo {
         title: String,
         authors: BTreeSet<Author>,
         tags: BTreeSet<Tag>,
-        labels: BTreeMap<String, String>,
+        labels: BTreeMap<String, Primitive>,
     ) -> anyhow::Result<PaperMeta> {
         let filename = if let Some(file) = file {
             let file = file.as_ref();

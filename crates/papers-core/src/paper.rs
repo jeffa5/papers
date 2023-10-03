@@ -3,7 +3,7 @@ use std::{
     path::PathBuf,
 };
 
-use crate::{author::Author, tag::Tag};
+use crate::{author::Author, primitive::Primitive, tag::Tag};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -19,7 +19,7 @@ pub struct PaperMeta {
     pub url: Option<String>,
     pub filename: Option<PathBuf>,
     pub tags: BTreeSet<Tag>,
-    pub labels: BTreeMap<String, String>,
+    pub labels: BTreeMap<String, Primitive>,
     pub authors: BTreeSet<Author>,
     pub created_at: chrono::NaiveDateTime,
     pub modified_at: chrono::NaiveDateTime,
