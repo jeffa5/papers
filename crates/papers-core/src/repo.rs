@@ -15,7 +15,7 @@ use crate::tag::Tag;
 pub const PROHIBITED_PATH_CHARS: &[char] =
     &['/', '\\', '?', '%', '*', ':', '|', '"', '<', '>', '.'];
 
-fn now_naive() -> chrono::NaiveDateTime {
+pub(crate) fn now_naive() -> chrono::NaiveDateTime {
     let n = chrono::Utc::now().naive_utc();
     let millis = n.timestamp();
     chrono::NaiveDateTime::from_timestamp_opt(millis, 0).unwrap()
@@ -64,6 +64,8 @@ impl Repo {
             authors,
             created_at: now_naive(),
             modified_at: now_naive(),
+            last_review: None,
+            next_review: None,
         };
 
         let paper_path = self.get_path(&paper);

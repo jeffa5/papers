@@ -23,4 +23,6 @@ pub struct PaperMeta {
     pub authors: BTreeSet<Author>,
     pub created_at: chrono::NaiveDateTime,
     pub modified_at: chrono::NaiveDateTime,
+    pub last_review: Option<chrono::NaiveDateTime>,
+    pub next_review: Option<chrono::NaiveDateTime>,
 }

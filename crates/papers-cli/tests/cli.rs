@@ -18,6 +18,7 @@ fn test_help() {
               rename-files  Automatically rename files to match their entry in the database
               edit          Edit the notes file for a paper
               open          Open the pdf file for the given paper
+              review        Review papers that have been unseen too long
               completions   Generate cli completion files
               import        Import a list of tasks in json format
               doctor        Check consistency of things in the repo

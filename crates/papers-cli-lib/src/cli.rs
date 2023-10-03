@@ -132,6 +132,12 @@ pub enum SubCommand {
         #[clap()]
         path: Option<PathBuf>,
     },
+    /// Review papers that have been unseen too long.
+    Review {
+        /// Open the pdf file too.
+        #[clap(long)]
+        open: bool,
+    },
     /// Generate cli completion files.
     Completions {
         /// Shell to generate for.
@@ -462,6 +468,43 @@ impl SubCommand {
                 let paper = get_or_select_paper(&repo, path.as_deref())?;
 
                 open_file(&paper.meta, &root)?;
+            }
+            Self::Review { open } => {
+                // get the list of papers ready for review
+                let repo = load_repo(config)?;
+                let root = repo.root().to_owned();
+
+                let all_papers = repo.all_papers();
+                let reviewable_papers = all_papers.iter().filter(|p| p.meta.is_reviewable());
+
+                for paper in reviewable_papers {
+                    // for each:
+                    // 1. ask the user if they want to review it
+                    //  a. if they do, edit the notes and maybe open it too
+                    //  b. after editing read it in, update the reviewed at field
+                    let review = input_bool(
+                        &format!("Do you want to review {:?}?", paper.meta.title),
+                        false,
+                    );
+                    if review {
+                        if open {
+                            open_file(&paper.meta, &root)?;
+                        }
+                        edit(&root.join(&paper.path))?;
+                        // now set the modified time
+                        let mut updated_paper = repo.get_paper(&paper.path)?;
+                        updated_paper.meta.update_review();
+                        println!(
+                            "Review complete, next review on {}",
+                            updated_paper.meta.next_review.unwrap()
+                        );
+                        repo.write_paper(
+                            &updated_paper.path,
+                            updated_paper.meta,
+                            &updated_paper.notes,
+                        )?;
+                    }
+                }
             }
             Self::Completions { shell, dir } => {
                 let path = gen_completions(shell, &dir);

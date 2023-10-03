@@ -65,6 +65,8 @@ impl SkimItem for FuzzyPaper {
             authors,
             created_at: _,
             modified_at: _,
+            last_review: _,
+            next_review: _,
         } = &self.0.meta;
         let authors = authors
             .iter()
