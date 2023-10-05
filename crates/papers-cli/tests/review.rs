@@ -10,7 +10,10 @@ fn test_help() {
         expect![[r#"
             Review papers that have been unseen too long
 
-            Usage: papers review [OPTIONS]
+            Usage: papers review [OPTIONS] [PATH]
+
+            Arguments:
+              [PATH]  Path of the paper to review, fuzzy selected if not given
 
             Options:
               -c, --config-file <CONFIG_FILE>    Config file path to load

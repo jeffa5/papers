@@ -134,6 +134,10 @@ pub enum SubCommand {
     },
     /// Review papers that have been unseen too long.
     Review {
+        /// Path of the paper to review, fuzzy selected if not given.
+        #[clap()]
+        path: Option<PathBuf>,
+
         /// Open the pdf file too.
         #[clap(long)]
         open: bool,
@@ -469,42 +473,56 @@ impl SubCommand {
 
                 open_file(&paper.meta, &root)?;
             }
-            Self::Review { open } => {
+            Self::Review { open, path } => {
                 // get the list of papers ready for review
                 let repo = load_repo(config)?;
                 let root = repo.root().to_owned();
 
-                let all_papers = repo.all_papers();
-                let reviewable_papers = all_papers.iter().filter(|p| p.meta.is_reviewable());
-
-                for paper in reviewable_papers {
-                    // for each:
-                    // 1. ask the user if they want to review it
-                    //  a. if they do, edit the notes and maybe open it too
-                    //  b. after editing read it in, update the reviewed at field
-                    let review = input_bool(
-                        &format!("Do you want to review {:?}?", paper.meta.title),
-                        false,
-                    );
-                    if review {
-                        if open {
-                            open_file(&paper.meta, &root)?;
-                        }
-                        edit(&root.join(&paper.path))?;
-                        // now set the modified time
-                        let mut updated_paper = repo.get_paper(&paper.path)?;
-                        updated_paper.meta.update_review();
-                        println!(
-                            "Review complete, next review on {}",
-                            updated_paper.meta.next_review.unwrap()
-                        );
-                        repo.write_paper(
-                            &updated_paper.path,
-                            updated_paper.meta,
-                            &updated_paper.notes,
-                        )?;
+                let review = |paper: LoadedPaper| -> anyhow::Result<()> {
+                    if open {
+                        open_file(&paper.meta, &root)?;
                     }
-                }
+                    edit(&root.join(&paper.path))?;
+                    // now set the modified time
+                    let mut updated_paper = repo.get_paper(&paper.path)?;
+                    updated_paper.meta.update_review();
+                    println!(
+                        "Review complete, next review on {}",
+                        updated_paper.meta.next_review.unwrap()
+                    );
+                    repo.write_paper(
+                        &updated_paper.path,
+                        updated_paper.meta,
+                        &updated_paper.notes,
+                    )?;
+                    Ok(())
+                };
+
+                match path {
+                    Some(path) => {
+                        let paper = repo.get_paper(&path)?;
+                        review(paper)?;
+                    }
+                    None => {
+                        let all_papers = repo.all_papers();
+                        loop {
+                            let reviewable_papers = all_papers
+                                .iter()
+                                .filter(|p| p.meta.is_reviewable())
+                                .cloned()
+                                .collect::<Vec<_>>();
+                            if reviewable_papers.is_empty() {
+                                break;
+                            }
+                            match select_paper(&reviewable_papers) {
+                                Some(p) => review(p)?,
+                                None => {
+                                    anyhow::bail!("No paper selected");
+                                }
+                            }
+                        }
+                    }
+                };
             }
             Self::Completions { shell, dir } => {
                 let path = gen_completions(shell, &dir);
@@ -877,7 +895,7 @@ fn get_or_select_paper(repo: &Repo, path: Option<&Path>) -> anyhow::Result<Loade
         Some(path) => repo.get_paper(path),
         None => {
             let all_papers = repo.all_papers();
-            match select_paper(all_papers) {
+            match select_paper(&all_papers) {
                 Some(p) => Ok(p),
                 None => {
                     anyhow::bail!("No paper selected");

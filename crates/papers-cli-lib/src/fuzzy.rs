@@ -5,16 +5,16 @@ use std::sync::Arc;
 struct FuzzyPaper(LoadedPaper);
 
 /// Select a paper by fuzzy searching them.
-pub fn select_paper(papers: Vec<LoadedPaper>) -> Option<LoadedPaper> {
+pub fn select_paper(papers: &[LoadedPaper]) -> Option<LoadedPaper> {
     select_papers_inner(papers, false).first().cloned()
 }
 
 /// Select multiple papers by fuzzy searching them.
-pub fn select_papers(papers: Vec<LoadedPaper>) -> Vec<LoadedPaper> {
+pub fn select_papers(papers: &[LoadedPaper]) -> Vec<LoadedPaper> {
     select_papers_inner(papers, true)
 }
 
-fn select_papers_inner(papers: Vec<LoadedPaper>, multi: bool) -> Vec<LoadedPaper> {
+fn select_papers_inner(papers: &[LoadedPaper], multi: bool) -> Vec<LoadedPaper> {
     // lines skim adds
     let ui_lines = 2;
     let height = papers.len() + ui_lines;
