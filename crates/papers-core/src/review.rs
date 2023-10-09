@@ -8,7 +8,7 @@ impl PaperMeta {
     fn calculate_next_review_date(&self) -> NaiveDateTime {
         let now = now_naive();
         let wait_days = match (self.last_review, self.next_review) {
-            (None, None) => 0,
+            (None, None) => 1,
             (None, Some(_next)) => 1,
             (Some(_last), None) => 1,
             (Some(last), Some(next)) => {
