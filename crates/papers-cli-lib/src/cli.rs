@@ -883,7 +883,7 @@ fn open_file(meta: &PaperMeta, root: &Path) -> anyhow::Result<()> {
     if let Some(filename) = &meta.filename {
         let path = root.join(filename);
         info!(?path, "Opening");
-        open::that_in_background(path);
+        open::that_detached(path)?;
     } else {
         info!("No file associated with that paper");
     }
