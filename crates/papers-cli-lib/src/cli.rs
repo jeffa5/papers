@@ -325,7 +325,6 @@ impl SubCommand {
                     }
                 }
 
-                let authors = BTreeSet::from_iter(authors);
                 let tags = BTreeSet::from_iter(tags);
                 let labels = BTreeSet::from_iter(labels);
 
@@ -746,7 +745,7 @@ fn add<P: AsRef<Path>>(
     file: Option<P>,
     url: Option<String>,
     title: String,
-    authors: BTreeSet<Author>,
+    authors: Vec<Author>,
     tags: BTreeSet<Tag>,
     labels: BTreeSet<Label>,
 ) -> anyhow::Result<PaperMeta> {

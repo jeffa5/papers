@@ -20,7 +20,7 @@ pub struct PaperMeta {
     pub filename: Option<PathBuf>,
     pub tags: BTreeSet<Tag>,
     pub labels: BTreeMap<String, Primitive>,
-    pub authors: BTreeSet<Author>,
+    pub authors: Vec<Author>,
     pub created_at: chrono::NaiveDateTime,
     pub modified_at: chrono::NaiveDateTime,
     pub last_review: Option<chrono::NaiveDateTime>,

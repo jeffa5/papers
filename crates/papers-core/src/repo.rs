@@ -41,7 +41,7 @@ impl Repo {
         file: Option<P>,
         url: Option<String>,
         title: String,
-        authors: BTreeSet<Author>,
+        authors: Vec<Author>,
         tags: BTreeSet<Tag>,
         labels: BTreeMap<String, Primitive>,
     ) -> anyhow::Result<PaperMeta> {

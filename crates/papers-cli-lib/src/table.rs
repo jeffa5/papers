@@ -17,7 +17,7 @@ pub struct TablePaper {
     /// Labels for this document.
     pub labels: BTreeSet<Label>,
     /// Authors for this document.
-    pub authors: BTreeSet<Author>,
+    pub authors: Vec<Author>,
     /// Age since creation.
     pub age: Duration,
 }
