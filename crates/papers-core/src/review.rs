@@ -16,7 +16,7 @@ impl PaperMeta {
                 if days_since_last > 1 {
                     (days_since_last as f64).powf(REVIEW_POWER).floor() as u64
                 } else {
-                    1
+                    2
                 }
             }
         };
