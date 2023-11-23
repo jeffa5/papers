@@ -25,7 +25,11 @@ impl PaperMeta {
 
     pub fn update_review(&mut self) {
         let next_review_date = self.calculate_next_review_date();
-        self.last_review = self.next_review;
+        self.last_review = if self.next_review.is_none() {
+            Some(next_review_date)
+        } else {
+            self.next_review
+        };
         self.next_review = Some(next_review_date);
     }
 
