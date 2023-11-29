@@ -502,25 +502,23 @@ impl SubCommand {
                         let paper = repo.get_paper(&path)?;
                         review(paper)?;
                     }
-                    None => {
+                    None => loop {
                         let all_papers = repo.all_papers();
-                        loop {
-                            let reviewable_papers = all_papers
-                                .iter()
-                                .filter(|p| p.meta.is_reviewable())
-                                .cloned()
-                                .collect::<Vec<_>>();
-                            if reviewable_papers.is_empty() {
-                                break;
-                            }
-                            match select_paper(&reviewable_papers) {
-                                Some(p) => review(p)?,
-                                None => {
-                                    anyhow::bail!("No paper selected");
-                                }
+                        let reviewable_papers = all_papers
+                            .iter()
+                            .filter(|p| p.meta.is_reviewable())
+                            .cloned()
+                            .collect::<Vec<_>>();
+                        if reviewable_papers.is_empty() {
+                            break;
+                        }
+                        match select_paper(&reviewable_papers) {
+                            Some(p) => review(p)?,
+                            None => {
+                                anyhow::bail!("No paper selected");
                             }
                         }
-                    }
+                    },
                 };
             }
             Self::Completions { shell, dir } => {
