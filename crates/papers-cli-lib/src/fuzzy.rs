@@ -23,6 +23,7 @@ fn select_papers_inner(papers: &[LoadedPaper], multi: bool) -> Vec<LoadedPaper> 
     let options = SkimOptionsBuilder::default()
         .height(Some(&height))
         .multi(multi)
+        .case(CaseMatching::Smart)
         .build()
         .unwrap();
 
