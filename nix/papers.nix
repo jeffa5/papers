@@ -14,13 +14,14 @@
     filter = srcFilter;
   };
   pname = "papers";
+    version = "0.1.0";
   deps = craneLib.buildDepsOnly {
-    inherit src pname;
+    inherit src pname version;
     buildInputs = [sqlite pkg-config openssl];
   };
 in
   craneLib.buildPackage {
-    inherit src pname;
+    inherit src pname version;
     cargoArtifacts = deps;
     buildInputs = [sqlite installShellFiles];
     installPhaseCommand = ''

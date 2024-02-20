@@ -702,7 +702,7 @@ fn fetch_url(url: &Url, path: &Path) -> anyhow::Result<PathBuf> {
         }
     };
     let headers = res.headers();
-    if let Some(content_type) = headers.get(http::header::CONTENT_TYPE) {
+    if let Some(content_type) = headers.get(reqwest::header::CONTENT_TYPE) {
         if content_type == "application/pdf" {
             // ensure the path ends in pdf
             if let Some("pdf") = filename.extension().and_then(|s| s.to_str()) {
@@ -771,12 +771,9 @@ fn extract_title(file: &Path) -> Option<String> {
         if let Some(info) = pdf_file.trailer.info_dict.as_ref() {
             debug!(?file, ?info, "Found the info dict");
             // try and extract the title
-            if let Some(found_title) = info.get("Title") {
+            if let Some(found_title) = &info.title {
                 debug!(?file, "Found title");
-                if let Ok(found_title) = found_title
-                    .as_string()
-                    .map(|ft| ft.to_string().unwrap_or_default())
-                {
+                if let Ok(found_title) = found_title.to_string() {
                     if !found_title.is_empty() {
                         debug!(?file, title = found_title, "Setting auto title");
                         return Some(found_title.trim().to_owned());
@@ -796,9 +793,9 @@ fn extract_authors(file: &Path) -> BTreeSet<Author> {
             if let Some(info) = pdf_file.trailer.info_dict.as_ref() {
                 debug!(?file, ?info, "Found the info dict");
                 // try and extract the authors
-                if let Some(found_authors) = info.get("Author") {
+                if let Some(found_authors) = &info.author {
                     debug!(?file, ?found_authors, "Found authors");
-                    match found_authors.as_string().and_then(|ft| ft.to_string()) {
+                    match found_authors.to_string() {
                         Ok(found_authors) => {
                             if !found_authors.is_empty() {
                                 debug!(?file, ?found_authors, "Setting auto authors");
