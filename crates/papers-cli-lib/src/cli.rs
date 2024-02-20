@@ -166,11 +166,23 @@ pub enum SubCommand {
         fix: bool,
     },
     /// List stats about tags.
-    Tags,
+    Tags {
+        /// Output the filtered selection of papers in different formats.
+        #[clap(long, short, value_enum, default_value_t)]
+        output: OutputStyle,
+    },
     /// List stats about labels.
-    Labels,
+    Labels {
+        /// Output the filtered selection of papers in different formats.
+        #[clap(long, short, value_enum, default_value_t)]
+        output: OutputStyle,
+    },
     /// List stats about authors.
-    Authors,
+    Authors {
+        /// Output the filtered selection of papers in different formats.
+        #[clap(long, short, value_enum, default_value_t)]
+        output: OutputStyle,
+    },
 }
 
 impl SubCommand {
@@ -637,7 +649,7 @@ impl SubCommand {
                     }
                 }
             }
-            Self::Tags => {
+            Self::Tags { output } => {
                 let repo = load_repo(config)?;
                 let tag_counts = repo
                     .all_papers()
@@ -646,9 +658,19 @@ impl SubCommand {
                     .flatten()
                     .map(|t| t.key().to_owned())
                     .fold(TableCount::default(), |acc, t| acc.add(t));
-                println!("{}", tag_counts);
+                match output {
+                    OutputStyle::Table => {
+                        println!("{tag_counts}");
+                    }
+                    OutputStyle::Json => {
+                        serde_json::to_writer(stdout(), &tag_counts)?;
+                    }
+                    OutputStyle::Yaml => {
+                        serde_yaml::to_writer(stdout(), &tag_counts)?;
+                    }
+                }
             }
-            Self::Labels => {
+            Self::Labels { output } => {
                 let repo = load_repo(config)?;
                 let label_counts = repo
                     .all_papers()
@@ -657,9 +679,19 @@ impl SubCommand {
                     .flatten()
                     .map(|(k, v)| Label::new(&k, v).to_string())
                     .fold(TableCount::default(), |acc, t| acc.add(t.to_owned()));
-                println!("{}", label_counts);
+                match output {
+                    OutputStyle::Table => {
+                        println!("{label_counts}");
+                    }
+                    OutputStyle::Json => {
+                        serde_json::to_writer(stdout(), &label_counts)?;
+                    }
+                    OutputStyle::Yaml => {
+                        serde_yaml::to_writer(stdout(), &label_counts)?;
+                    }
+                }
             }
-            Self::Authors => {
+            Self::Authors { output } => {
                 let repo = load_repo(config)?;
                 let author_counts = repo
                     .all_papers()
@@ -668,7 +700,17 @@ impl SubCommand {
                     .flatten()
                     .map(|t| t.to_string())
                     .fold(TableCount::default(), |acc, t| acc.add(t.to_owned()));
-                println!("{}", author_counts);
+                match output {
+                    OutputStyle::Table => {
+                        println!("{author_counts}");
+                    }
+                    OutputStyle::Json => {
+                        serde_json::to_writer(stdout(), &author_counts)?;
+                    }
+                    OutputStyle::Yaml => {
+                        serde_yaml::to_writer(stdout(), &author_counts)?;
+                    }
+                }
             }
         }
         Ok(())

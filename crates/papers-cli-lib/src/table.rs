@@ -144,6 +144,7 @@ impl Display for Table {
 /// Store counts for groups.
 #[derive(Default, Debug, Serialize)]
 pub struct TableCount {
+    #[serde(flatten)]
     counts: BTreeMap<String, usize>,
 }
 
