@@ -170,18 +170,27 @@ pub enum SubCommand {
         /// Output the filtered selection of papers in different formats.
         #[clap(long, short, value_enum, default_value_t)]
         output: OutputStyle,
+        /// Sort the output by count.
+        #[clap(long, short, default_value = "false")]
+        sort: bool,
     },
     /// List stats about labels.
     Labels {
         /// Output the filtered selection of papers in different formats.
         #[clap(long, short, value_enum, default_value_t)]
         output: OutputStyle,
+        /// Sort the output by count.
+        #[clap(long, short, default_value = "false")]
+        sort: bool,
     },
     /// List stats about authors.
     Authors {
         /// Output the filtered selection of papers in different formats.
         #[clap(long, short, value_enum, default_value_t)]
         output: OutputStyle,
+        /// Sort the output by count.
+        #[clap(long, short, default_value = "false")]
+        sort: bool,
     },
 }
 
@@ -649,15 +658,18 @@ impl SubCommand {
                     }
                 }
             }
-            Self::Tags { output } => {
+            Self::Tags { output, sort } => {
                 let repo = load_repo(config)?;
-                let tag_counts = repo
+                let mut tag_counts = repo
                     .all_papers()
                     .into_iter()
                     .map(|p| p.meta.tags)
                     .flatten()
                     .map(|t| t.key().to_owned())
                     .fold(TableCount::default(), |acc, t| acc.add(t));
+                if sort {
+                    tag_counts.sort_by_count();
+                }
                 match output {
                     OutputStyle::Table => {
                         println!("{tag_counts}");
@@ -670,15 +682,18 @@ impl SubCommand {
                     }
                 }
             }
-            Self::Labels { output } => {
+            Self::Labels { output, sort } => {
                 let repo = load_repo(config)?;
-                let label_counts = repo
+                let mut label_counts = repo
                     .all_papers()
                     .into_iter()
                     .map(|p| p.meta.labels)
                     .flatten()
                     .map(|(k, v)| Label::new(&k, v).to_string())
                     .fold(TableCount::default(), |acc, t| acc.add(t.to_owned()));
+                if sort {
+                    label_counts.sort_by_count();
+                }
                 match output {
                     OutputStyle::Table => {
                         println!("{label_counts}");
@@ -691,15 +706,18 @@ impl SubCommand {
                     }
                 }
             }
-            Self::Authors { output } => {
+            Self::Authors { output, sort } => {
                 let repo = load_repo(config)?;
-                let author_counts = repo
+                let mut author_counts = repo
                     .all_papers()
                     .into_iter()
                     .map(|p| p.meta.authors)
                     .flatten()
                     .map(|t| t.to_string())
                     .fold(TableCount::default(), |acc, t| acc.add(t.to_owned()));
+                if sort {
+                    author_counts.sort_by_count();
+                }
                 match output {
                     OutputStyle::Table => {
                         println!("{author_counts}");

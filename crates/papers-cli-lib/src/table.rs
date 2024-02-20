@@ -146,6 +146,8 @@ impl Display for Table {
 pub struct TableCount {
     #[serde(flatten)]
     counts: BTreeMap<String, usize>,
+    #[serde(skip)]
+    sort_by_count: bool,
 }
 
 impl TableCount {
@@ -155,8 +157,24 @@ impl TableCount {
         self
     }
 
+    /// Sort entries by count when producing table
+    pub fn sort_by_count(&mut self) {
+        self.sort_by_count = true;
+    }
+
     fn header() -> comfy_table::Row {
         comfy_table::Row::from(vec!["key", "count"])
+    }
+
+    fn rows(&self) -> Vec<comfy_table::Row> {
+        let mut items: Vec<_> = self.counts.iter().collect();
+        if self.sort_by_count {
+            items.sort_by_key(|(_, count)| *count);
+        }
+        items
+            .into_iter()
+            .map(|(k, c)| comfy_table::Row::from(vec![k, &c.to_string()]))
+            .collect()
     }
 }
 
@@ -170,8 +188,8 @@ impl Display for TableCount {
 
         tab.set_header(Self::header());
 
-        for (key, count) in &self.counts {
-            tab.add_row(comfy_table::Row::from(vec![key, &count.to_string()]));
+        for row in self.rows() {
+            tab.add_row(row);
         }
 
         write!(f, "{}", tab)
