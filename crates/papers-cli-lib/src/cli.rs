@@ -20,7 +20,7 @@ use crate::{
     config::Config,
     fuzzy::select_paper,
     interactive::{input, input_bool, input_default, input_opt, input_vec, input_vec_default},
-    table::Table,
+    table::{Table, TableCount},
 };
 use crate::{error, rename_files};
 use crate::{file_or_stdin::FileOrStdin, ids::Ids};
@@ -159,13 +159,18 @@ pub enum SubCommand {
         #[clap()]
         file: FileOrStdin,
     },
-
     /// Check consistency of things in the repo.
     Doctor {
         /// Try and fix the problems
         #[clap(long)]
         fix: bool,
     },
+    /// List stats about tags.
+    Tags,
+    /// List stats about labels.
+    Labels,
+    /// List stats about authors.
+    Authors,
 }
 
 impl SubCommand {
@@ -631,6 +636,39 @@ impl SubCommand {
                         println!("Found unmatched file {:?}", path);
                     }
                 }
+            }
+            Self::Tags => {
+                let repo = load_repo(config)?;
+                let tag_counts = repo
+                    .all_papers()
+                    .into_iter()
+                    .map(|p| p.meta.tags)
+                    .flatten()
+                    .map(|t| t.key().to_owned())
+                    .fold(TableCount::default(), |acc, t| acc.add(t));
+                println!("{}", tag_counts);
+            }
+            Self::Labels => {
+                let repo = load_repo(config)?;
+                let label_counts = repo
+                    .all_papers()
+                    .into_iter()
+                    .map(|p| p.meta.labels)
+                    .flatten()
+                    .map(|(k, v)| Label::new(&k, v).to_string())
+                    .fold(TableCount::default(), |acc, t| acc.add(t.to_owned()));
+                println!("{}", label_counts);
+            }
+            Self::Authors => {
+                let repo = load_repo(config)?;
+                let author_counts = repo
+                    .all_papers()
+                    .into_iter()
+                    .map(|p| p.meta.authors)
+                    .flatten()
+                    .map(|t| t.to_string())
+                    .fold(TableCount::default(), |acc, t| acc.add(t.to_owned()));
+                println!("{}", author_counts);
             }
         }
         Ok(())

@@ -25,7 +25,7 @@ impl Ord for Label {
 }
 
 impl Label {
-    pub fn new(key: &str, value: &Primitive) -> Self {
+    pub fn new(key: &str, value: Primitive) -> Self {
         let key = key.trim();
         assert!(
             !key.contains(char::is_whitespace),
@@ -33,7 +33,7 @@ impl Label {
         );
         Self {
             key: key.to_owned(),
-            value: value.to_owned(),
+            value,
         }
     }
 
@@ -56,7 +56,7 @@ impl FromStr for Label {
         match kv[..] {
             [k, v] => Ok(Self::new(
                 k,
-                &v.parse()
+                v.parse()
                     .unwrap_or_else(|_| Primitive::String(v.to_owned())),
             )),
             [_] => Err("Missing value, should be of the form `key=value`"),

@@ -1,4 +1,4 @@
-use std::{collections::BTreeSet, fmt::Display, time::Duration};
+use std::{collections::BTreeMap, collections::BTreeSet, fmt::Display, time::Duration};
 
 use papers_core::{author::Author, label::Label, paper::PaperMeta, tag::Tag};
 use serde::Serialize;
@@ -47,7 +47,11 @@ impl TablePaper {
             Err(_) => (-age).to_std().unwrap(),
         };
         let filename = p.filename.map(|f| f.to_string_lossy().into_owned());
-        let labels = p.labels.iter().map(|(k, v)| Label::new(k, v)).collect();
+        let labels = p
+            .labels
+            .into_iter()
+            .map(|(k, v)| Label::new(&k, v))
+            .collect();
         Self {
             url: p.url,
             filename,
@@ -131,6 +135,42 @@ impl Display for Table {
 
         for paper in &self.papers {
             tab.add_row(paper.to_row());
+        }
+
+        write!(f, "{}", tab)
+    }
+}
+
+/// Store counts for groups.
+#[derive(Default, Debug, Serialize)]
+pub struct TableCount {
+    counts: BTreeMap<String, usize>,
+}
+
+impl TableCount {
+    /// Add a new entry.
+    pub fn add(mut self, value: String) -> Self {
+        *self.counts.entry(value).or_default() += 1;
+        self
+    }
+
+    fn header() -> comfy_table::Row {
+        comfy_table::Row::from(vec!["key", "count"])
+    }
+}
+
+impl Display for TableCount {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut tab = comfy_table::Table::new();
+
+        tab.load_preset(comfy_table::presets::UTF8_FULL_CONDENSED)
+            .apply_modifier(comfy_table::modifiers::UTF8_ROUND_CORNERS)
+            .set_content_arrangement(comfy_table::ContentArrangement::Dynamic);
+
+        tab.set_header(Self::header());
+
+        for (key, count) in &self.counts {
+            tab.add_row(comfy_table::Row::from(vec![key, &count.to_string()]));
         }
 
         write!(f, "{}", tab)
